@@ -31,7 +31,6 @@
   </header>
 
   <main class="wrap">
-    <!-- ESQUERDA -->
     <aside class="col left">
       <section class="card">
         <h2>Preceptor</h2>
@@ -67,7 +66,7 @@
         </div>
 
         <div class="hint">
-          ✔ Autosave offline. Cada data tem seu próprio relatório + caso clínico do dia.
+          ✔ Offline. Cada data = um relatório + caso do dia.
         </div>
       </section>
 
@@ -79,7 +78,7 @@
 
         <div class="rowActions">
           <button class="btn" id="btnNovoAluno">+ Novo aluno</button>
-          <button class="btn ghost" id="btnFixar6">Preencher 6 espaços</button>
+          <button class="btn ghost" id="btnFixar6">Preencher 6</button>
           <button class="btn ghost" id="btnLimparDia">Limpar notas do DIA</button>
         </div>
 
@@ -95,11 +94,10 @@
       </section>
     </aside>
 
-    <!-- DIREITA -->
     <section class="col right">
       <section class="card">
         <div class="rowTitle">
-          <h2>Modo Rápido — notas durante o atendimento</h2>
+          <h2>Modo Rápido — notas durante atendimento</h2>
           <span class="pill">Toque: — → 0 → 3 → 5</span>
         </div>
 
@@ -159,7 +157,7 @@
         </div>
 
         <label>Observação curta</label>
-        <textarea id="al_obs" placeholder="Ex.: boa anamnese; revisar exame físico; organizar apresentação do caso..."></textarea>
+        <textarea id="al_obs" placeholder="Ex.: boa anamnese; revisar exame físico; organizar apresentação..."></textarea>
 
         <div class="divider"></div>
 
@@ -181,7 +179,7 @@
 
         <div class="divider"></div>
 
-        <h3 class="subh">Feedback (sem ferir)</h3>
+        <h3 class="subh">Feedback</h3>
         <div class="grid2">
           <div>
             <label>Pontos fortes</label>
@@ -235,7 +233,7 @@
         <textarea id="caso_conduta"></textarea>
 
         <div class="rowActions">
-          <button class="btn ghost" id="btnLimparCaso">Limpar caso (só essa data)</button>
+          <button class="btn ghost" id="btnLimparCaso">Limpar caso</button>
         </div>
       </section>
     </section>
@@ -251,8 +249,9 @@
     </div>
   </div>
 
-  <!-- área do PDF -->
-  <div id="printArea" class="printOnly"></div>
+  <!-- ✅ libs do PDF: jsPDF + AutoTable -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.3/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script src="app.js"></script>
 </body>
