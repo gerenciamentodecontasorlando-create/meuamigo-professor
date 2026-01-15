@@ -1,5 +1,7 @@
-/* ANDY PRO — app.js
-   PDF bonito: fonte 12, bordas completas, cantos arredondados, logo em destaque, layout organizado.
+/* ANDY PRO — PDF REAL (jsPDF + AutoTable)
+   - Resolve PDF branco ao compartilhar (sem window.print)
+   - Gera arquivo PDF de verdade
+   - Tenta compartilhar via Web Share (com arquivo). Se não der, baixa.
 */
 
 const CRITS = [
@@ -11,8 +13,7 @@ const CRITS = [
   { key: "expressividade", label: "Expressividade" },
 ];
 
-const STORAGE_KEY = "ANDY_PRO_V2_PDF";
-
+const STORAGE_KEY = "ANDY_PRO_V3_REALPDF";
 const $ = (id) => document.getElementById(id);
 
 function hojeISO() {
@@ -22,13 +23,6 @@ function hojeISO() {
 }
 function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 
-function esc(s) {
-  return (s ?? "").toString().replace(/[&<>"']/g, (m) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[m]));
-}
-function nl2br(s){ return esc(s || "—").replace(/\n/g,"<br>"); }
-
 function cycle(v){
   if (v === null || v === undefined) return 0;
   if (v === 0) return 3;
@@ -36,10 +30,8 @@ function cycle(v){
   return null;
 }
 
-function defaultNotas() {
-  return Object.fromEntries(CRITS.map(c => [c.key, null]));
-}
-function defaultRegistroDia() {
+function defaultNotas(){ return Object.fromEntries(CRITS.map(c => [c.key, null])); }
+function defaultRegistroDia(){
   return {
     presenca: "Presente",
     reposicao: "Não",
@@ -61,7 +53,7 @@ let state = {
 
 function diaKey(){ return $("dia").value || hojeISO(); }
 
-function ensureDia() {
+function ensureDia(){
   const k = diaKey();
   if (!state.dias[k]) state.dias[k] = { registros: {}, caso: defaultCaso() };
   state.alunos.forEach(a => {
@@ -78,12 +70,12 @@ function getReg(alunoId){
 function getCaso(){ ensureDia(); return state.dias[diaKey()].caso; }
 
 function score(notas){
-  const vals = Object.values(notas||{}).filter(v=>typeof v==="number");
-  const max = CRITS.length*5;
-  if(!vals.length) return {sum:null,max,nota10:null};
+  const vals = Object.values(notas||{}).filter(v => typeof v === "number");
+  const max = CRITS.length * 5;
+  if (!vals.length) return { sum:null, max, nota10:null };
   const sum = vals.reduce((a,b)=>a+b,0);
   const nota10 = Math.round(((sum/max)*10)*10)/10;
-  return {sum,max,nota10};
+  return { sum, max, nota10 };
 }
 
 function save(){
@@ -107,20 +99,17 @@ function load(){
   state.selecionado ||= null;
 
   $("dia").value = $("dia").value || hojeISO();
-  fillPreceptor();
-  ensureDia();
 
-  if(!state.selecionado && state.alunos.length) state.selecionado = state.alunos[0].id;
-
-  renderAll();
-}
-
-function fillPreceptor(){
   $("prof_nome").value = state.preceptor.nome || "";
   $("prof_tel").value = state.preceptor.tel || "";
   $("prof_disc").value = state.preceptor.disc || "Clínica Integrada";
   $("prof_local").value = state.preceptor.local || "";
   $("prof_grupo").value = state.preceptor.grupo || "";
+
+  ensureDia();
+  if(!state.selecionado && state.alunos.length) state.selecionado = state.alunos[0].id;
+
+  renderAll();
 }
 
 function renderAll(){
@@ -145,10 +134,9 @@ function renderListaAlunos(){
     const r = getReg(a.id);
     const sc = score(r.notas);
     const notaTxt = sc.nota10==null ? "—" : sc.nota10;
-
     const btn = document.createElement("button");
     btn.className = (state.selecionado===a.id) ? "active" : "";
-    btn.innerHTML = `<b>${esc(a.nome)}</b><div class="sub">Mat: ${esc(a.mat||"—")} • ${esc(r.presenca)} • Nota: ${esc(notaTxt)}</div>`;
+    btn.innerHTML = `<b>${a.nome}</b><div class="sub">Mat: ${a.mat||"—"} • ${r.presenca} • Nota: ${notaTxt}</div>`;
     btn.onclick = ()=>{ state.selecionado=a.id; renderAll(); };
     wrap.appendChild(btn);
   });
@@ -165,14 +153,13 @@ function renderTabelaRapida(){
     <tr>
       <th>Aluno</th>
       <th>Presença</th>
-      ${CRITS.map(c=>`<th>${esc(c.label)}</th>`).join("")}
+      ${CRITS.map(c=>`<th>${c.label}</th>`).join("")}
       <th>Obs curta</th>
       <th>Reposição</th>
     </tr>`;
 
   const rows = state.alunos.map(a=>{
     const r = getReg(a.id);
-
     const cells = CRITS.map(c=>{
       const v = r.notas[c.key];
       const cls = (v==null) ? "v" : (v===0?"n0":(v===3?"n3":"n5"));
@@ -183,8 +170,8 @@ function renderTabelaRapida(){
     return `
       <tr>
         <td>
-          <b style="cursor:pointer" onclick="selectAluno('${a.id}')">${esc(a.nome)}</b><br/>
-          <span style="color:#607D8B;font-size:12px">Mat: ${esc(a.mat||"—")}</span>
+          <b style="cursor:pointer" onclick="selectAluno('${a.id}')">${a.nome}</b><br/>
+          <span style="color:#607D8B;font-size:12px">Mat: ${a.mat||"—"}</span>
         </td>
         <td>
           <select onchange="setPresenca('${a.id}', this.value)">
@@ -193,7 +180,7 @@ function renderTabelaRapida(){
         </td>
         ${cells}
         <td>
-          <input value="${esc(r.obs||"")}" placeholder="ex.: revisar SOAP" oninput="setObs('${a.id}', this.value)" />
+          <input value="${(r.obs||"").replace(/"/g,'&quot;')}" placeholder="ex.: revisar SOAP" oninput="setObs('${a.id}', this.value)" />
         </td>
         <td>
           <select onchange="setReposicao('${a.id}', this.value)">
@@ -219,7 +206,7 @@ function renderCriteriosCard(){
     const row = document.createElement("div");
     row.className="crit";
     row.innerHTML = `
-      <b>${esc(c.label)}</b>
+      <b>${c.label}</b>
       <div class="critBtns">
         <button class="pbtn ${v===0?"active":""}" onclick="setNotaCard('${c.key}',0)">0</button>
         <button class="pbtn ${v===3?"active":""}" onclick="setNotaCard('${c.key}',3)">3</button>
@@ -236,7 +223,6 @@ function renderCartaoAluno(){
     tag.textContent="Selecione um aluno";
     return;
   }
-
   const a = state.alunos.find(x=>x.id===state.selecionado);
   const r = getReg(state.selecionado);
 
@@ -269,13 +255,11 @@ function renderFilaReposicoes(){
     return;
   }
 
-  const fila = [];
+  const fila=[];
   state.alunos.forEach(a=>{
     const r = getReg(a.id);
     const precisa = (r.presenca==="Falta") || (r.reposicao==="Sim");
-    if(precisa){
-      fila.push({ id:a.id, nome:a.nome, mat:a.mat||"", repData:r.repData||"", status:r.repStatus||"pendente" });
-    }
+    if(precisa) fila.push({id:a.id, nome:a.nome, mat:a.mat||"", repData:r.repData||"", status:r.repStatus||"pendente"});
   });
 
   if(!fila.length){
@@ -288,8 +272,8 @@ function renderFilaReposicoes(){
     div.className="repItem";
     div.innerHTML = `
       <div>
-        <b>${esc(item.nome)}</b>
-        <div class="meta">Mat: ${esc(item.mat||"—")} • Prev: ${esc(item.repData||"—")}</div>
+        <b>${item.nome}</b>
+        <div class="meta">Mat: ${item.mat||"—"} • Prev: ${item.repData||"—"}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <span class="tag ${item.status==="feita"?"feita":"pendente"}">${item.status==="feita"?"Feita":"Pendente"}</span>
@@ -301,48 +285,46 @@ function renderFilaReposicoes(){
 }
 
 function renderCaso(){
-  const c = getCaso();
-  $("caso_qp").value = c.qp || "";
-  $("caso_hda").value = c.hda || "";
-  $("caso_achados").value = c.achados || "";
-  $("caso_hipoteses").value = c.hipoteses || "";
-  $("caso_conduta").value = c.conduta || "";
+  const c=getCaso();
+  $("caso_qp").value = c.qp||"";
+  $("caso_hda").value = c.hda||"";
+  $("caso_achados").value = c.achados||"";
+  $("caso_hipoteses").value = c.hipoteses||"";
+  $("caso_conduta").value = c.conduta||"";
 }
 
-/* ---------- ações expostas ---------- */
+/* ações */
 window.selectAluno = (id)=>{ state.selecionado=id; renderAll(); };
-window.toggleNota = (alunoId, critKey)=>{ const r=getReg(alunoId); r.notas[critKey]=cycle(r.notas[critKey]); renderAll(); };
+window.toggleNota = (alunoId, key)=>{ const r=getReg(alunoId); r.notas[key]=cycle(r.notas[key]); renderAll(); };
 window.setPresenca = (alunoId, val)=>{ const r=getReg(alunoId); r.presenca=val; if(val==="Falta") r.reposicao="Sim"; renderAll(); };
 window.setReposicao = (alunoId, val)=>{ const r=getReg(alunoId); r.reposicao=val; renderAll(); };
 window.setObs = (alunoId, val)=>{ const r=getReg(alunoId); r.obs=val; save(); };
-window.setNotaCard = (critKey, val)=>{ if(!state.selecionado) return; const r=getReg(state.selecionado); r.notas[critKey]=val; renderAll(); };
-window.toggleRep = (alunoId)=>{ const r=getReg(alunoId); r.repStatus = (r.repStatus==="feita") ? "pendente" : "feita"; renderAll(); };
+window.setNotaCard = (key, val)=>{ if(!state.selecionado) return; const r=getReg(state.selecionado); r.notas[key]=val; renderAll(); };
+window.toggleRep = (alunoId)=>{ const r=getReg(alunoId); r.repStatus = (r.repStatus==="feita")?"pendente":"feita"; renderAll(); };
 
-/* ---------- alunos ---------- */
+/* alunos */
 function novoAluno(nomeDefault){
   if(state.alunos.length>=6) return alert("Máximo de 6 alunos.");
   const a = { id:uid(), nome:nomeDefault || `Aluno ${state.alunos.length+1}`, mat:"", tel:"" };
   state.alunos.push(a);
   ensureDia();
-  state.selecionado = a.id;
+  state.selecionado=a.id;
   renderAll();
 }
-function preencher6(){
-  while(state.alunos.length<6) novoAluno(`Aluno ${state.alunos.length+1}`);
-}
+function preencher6(){ while(state.alunos.length<6) novoAluno(`Aluno ${state.alunos.length+1}`); }
 function limparDia(){
   if(!confirm("Limpar notas/obs do DIA atual (não apaga outros dias)?")) return;
   ensureDia();
-  const k = diaKey();
-  state.alunos.forEach(a=> state.dias[k].registros[a.id] = defaultRegistroDia());
+  const k=diaKey();
+  state.alunos.forEach(a=> state.dias[k].registros[a.id]=defaultRegistroDia());
   renderAll();
 }
 
-/* ---------- salvar aluno e autosave ---------- */
-function salvarAluno(){
-  if(!state.selecionado) return alert("Selecione um aluno.");
-  const a = state.alunos.find(x=>x.id===state.selecionado);
-  const r = getReg(state.selecionado);
+/* salvar aluno */
+function autosaveAluno(){
+  if(!state.selecionado) return;
+  const a=state.alunos.find(x=>x.id===state.selecionado);
+  const r=getReg(state.selecionado);
 
   a.nome = $("al_nome").value || a.nome;
   a.mat  = $("al_mat").value || "";
@@ -361,71 +343,43 @@ function salvarAluno(){
   };
 
   if(r.presenca==="Falta") r.reposicao="Sim";
+  save();
+}
 
+function salvarAluno(){
+  autosaveAluno();
   renderAll();
   alert("Aluno salvo ✅");
 }
 
-function autosaveAlunoSilencioso(){
-  if(!state.selecionado) return;
-  const a = state.alunos.find(x=>x.id===state.selecionado);
-  const r = getReg(state.selecionado);
-
-  a.nome = $("al_nome").value || a.nome;
-  a.mat  = $("al_mat").value || "";
-  a.tel  = $("al_tel").value || "";
-
-  r.presenca  = $("al_presenca").value;
-  r.reposicao = $("al_reposicao").value;
-  r.repData   = $("al_repdata").value || "";
-  r.obs       = $("al_obs").value || "";
-
-  r.feedback = {
-    fortes: $("fb_fortes").value || "",
-    melhorar: $("fb_melhorar").value || "",
-    estudar: $("fb_estudar").value || "",
-    msg: $("fb_msg").value || ""
-  };
-
-  if(r.presenca==="Falta") r.reposicao="Sim";
-  save();
-}
-
-/* ---------- caso ---------- */
+/* caso */
 function salvarCaso(){
-  const c = getCaso();
-  c.qp = $("caso_qp").value || "";
-  c.hda = $("caso_hda").value || "";
-  c.achados = $("caso_achados").value || "";
-  c.hipoteses = $("caso_hipoteses").value || "";
-  c.conduta = $("caso_conduta").value || "";
+  const c=getCaso();
+  c.qp = $("caso_qp").value||"";
+  c.hda = $("caso_hda").value||"";
+  c.achados = $("caso_achados").value||"";
+  c.hipoteses = $("caso_hipoteses").value||"";
+  c.conduta = $("caso_conduta").value||"";
   save();
 }
 function limparCaso(){
-  if(!confirm("Limpar o caso do dia (só essa data)?")) return;
+  if(!confirm("Limpar o caso do dia?")) return;
   const c=getCaso();
   c.qp=c.hda=c.achados=c.hipoteses=c.conduta="";
   renderAll(); save();
 }
 
-/* ---------- feedback gerador ---------- */
+/* feedback gerador simples */
 function gerarFeedback(modo){
   if(!state.selecionado) return alert("Selecione um aluno.");
-  const fortes  = ($("fb_fortes").value || "—").trim();
-  const melhorar= ($("fb_melhorar").value || "—").trim();
-  const estudar = ($("fb_estudar").value || "—").trim();
+  const fortes = ($("fb_fortes").value||"—").trim();
+  const melhorar = ($("fb_melhorar").value||"—").trim();
+  const estudar = ($("fb_estudar").value||"—").trim();
 
   let intro="", fim="";
-  if(modo==="encorajador"){
-    intro="Você está evoluindo. O objetivo aqui é acelerar tua curva de aprendizado com segurança.";
-    fim="Segue firme — com constância, tua performance sobe rápido.";
-  } else if(modo==="direto"){
-    intro="Feedback objetivo da prática (pra te deixar mais forte):";
-    fim="Próxima prática: execute isso com consistência e eu reviso contigo.";
-  } else {
-    intro="Feedback do dia (orientador):";
-    fim="A ideia é te guiar no próximo passo, sem pressão desnecessária.";
-  }
+  if(modo==="encorajador"){ intro="Você está evoluindo. Vamos acelerar tua curva com segurança."; fim="Segue firme — constância dá resultado."; }
+  else if(modo==="direto"){ intro="Feedback objetivo da prática:"; fim="Aplique isso na próxima prática e a gente revisa."; }
+  else { intro="Feedback orientador do dia:"; fim="O foco é evolução, sem pressão desnecessária."; }
 
   $("fb_msg").value =
 `${intro}
@@ -442,28 +396,22 @@ function gerarFeedback(modo){
 🤝 Mensagem:
 ${fim}`;
 
-  autosaveAlunoSilencioso();
+  autosaveAluno();
   alert("Feedback gerado ✅");
 }
 
-/* ---------- histórico modal ---------- */
+/* modal histórico (igual ao anterior, resumido) */
 function abrirHistorico(){
   if(!state.selecionado) return alert("Selecione um aluno.");
-  const a = state.alunos.find(x=>x.id===state.selecionado);
+  const a=state.alunos.find(x=>x.id===state.selecionado);
 
-  const regs = [];
+  const regs=[];
   Object.keys(state.dias).sort().forEach(d=>{
-    const reg = state.dias[d]?.registros?.[a.id];
+    const reg=state.dias[d]?.registros?.[a.id];
     if(!reg) return;
     const sc=score(reg.notas);
-    const precisa = (reg.presenca==="Falta") || (reg.reposicao==="Sim");
-    regs.push({
-      data:d,
-      presenca:reg.presenca,
-      nota:sc.nota10,
-      obs:reg.obs||"",
-      rep:precisa ? `${reg.repStatus||"pendente"} / ${reg.repData||"—"}` : "—"
-    });
+    const precisa=(reg.presenca==="Falta")||(reg.reposicao==="Sim");
+    regs.push({data:d,presenca:reg.presenca,nota:sc.nota10,obs:reg.obs||"",rep:precisa?`${reg.repStatus||"pendente"} / ${reg.repData||"—"}`:"—"});
   });
 
   $("modalTitle").textContent = `Histórico — ${a.nome}`;
@@ -481,11 +429,11 @@ function abrirHistorico(){
       <tbody>
         ${regs.map(r=>`
           <tr>
-            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.data)}</td>
-            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.presenca)}</td>
-            <td style="border:1px solid #cfd8dc;padding:8px;">${r.nota==null?"—":esc(String(r.nota))}</td>
-            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.obs)}</td>
-            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.rep)}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${r.data}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${r.presenca}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${r.nota==null?"—":r.nota}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${r.obs}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${r.rep}</td>
           </tr>
         `).join("")}
       </tbody>
@@ -497,214 +445,263 @@ function abrirHistorico(){
 function fecharModal(){ $("modal").classList.remove("show"); }
 
 /* =========================
-   PDF PREMIUM (AQUI É O UPGRADE)
-   - fonte 12
-   - borda completa, cantos arredondados
-   - header com logo + dados
-   - texto centralizado e organizado
+   ✅ PDF REAL (não dá branco)
 ========================= */
-
-function logoHTML(){
-  return `
-  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px;">
-    <div style="display:flex;align-items:center;gap:8px;border:1px solid rgba(30,136,229,.35);border-radius:16px;padding:10px 14px;background:#f4f9ff;">
-      <div style="width:54px;height:54px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:#E3F2FD;border:1px solid rgba(30,136,229,.35);color:#1E88E5;font-weight:900;font-size:28px;">A</div>
-      <div style="color:#1E88E5;font-weight:900;font-size:18px;letter-spacing:1px;">NDY</div>
-    </div>
-    <div style="text-align:center;">
-      <div style="font-size:18px;font-weight:900;color:#1E88E5;line-height:1;">ANDY</div>
-      <div style="font-size:12px;color:#607D8B;">Assistente de Prática Clínica Integrada</div>
-    </div>
-  </div>`;
+function getDoc(){
+  const { jsPDF } = window.jspdf;
+  return new jsPDF({ unit:"pt", format:"a4" });
 }
 
-function boxHTML(title, body){
-  return `
-  <div style="border:1px solid #cfd8dc;border-radius:18px;padding:12px 14px;margin-top:10px;">
-    <div style="text-align:center;font-weight:900;color:#1E88E5;margin-bottom:8px;">${esc(title)}</div>
-    <div style="font-size:12px;line-height:1.35;">${body}</div>
-  </div>`;
-}
+function drawHeader(doc, titulo){
+  // cores
+  const azul = [30,136,229];
 
-function headerPDF(){
+  // borda externa arredondada (simulada)
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
+  doc.setDrawColor(...azul);
+  doc.setLineWidth(2);
+  doc.roundedRect(28, 28, w-56, h-56, 14, 14);
+
+  // Logo ANDY (A + NDY)
+  doc.setFillColor(227,242,253);
+  doc.setDrawColor(30,136,229);
+  doc.roundedRect(44, 44, 56, 56, 16, 16, "FD");
+  doc.setTextColor(...azul);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(24);
+  doc.text("A", 72, 80, { align:"center" });
+
+  doc.setFontSize(18);
+  doc.text("NDY", 118, 78);
+
+  // Título
+  doc.setFontSize(14);
+  doc.setTextColor(...azul);
+  doc.text("ANDY PRO", w/2, 66, { align:"center" });
+  doc.setFontSize(12);
+  doc.setTextColor(96,125,139);
+  doc.text(titulo, w/2, 84, { align:"center" });
+
+  // caixa preceptor
   const p = state.preceptor;
-  return `
-    ${logoHTML()}
-    <div style="border:1px solid #cfd8dc;border-radius:18px;padding:12px 14px;">
-      <div style="text-align:center;font-size:12px;">
-        <b>Preceptor:</b> ${esc(p.nome||"—")} &nbsp; | &nbsp;
-        <b>Tel:</b> ${esc(p.tel||"—")} &nbsp; | &nbsp;
-        <b>Data:</b> ${esc(diaKey())}
-      </div>
-      <div style="text-align:center;font-size:12px;margin-top:6px;">
-        <b>Disciplina:</b> ${esc(p.disc||"—")} &nbsp; | &nbsp;
-        <b>Local:</b> ${esc(p.local||"—")} &nbsp; | &nbsp;
-        <b>Grupo:</b> ${esc(p.grupo||"—")}
-      </div>
-    </div>
-  `;
+  doc.setDrawColor(207,216,220);
+  doc.setLineWidth(1);
+  doc.roundedRect(44, 110, w-88, 70, 12, 12);
+
+  doc.setFontSize(12);
+  doc.setTextColor(38,50,56);
+  doc.setFont("helvetica","normal");
+
+  const line1 = `Preceptor: ${p.nome||"—"}   |   Tel: ${p.tel||"—"}   |   Data: ${diaKey()}`;
+  const line2 = `Disciplina: ${p.disc||"—"}   |   Local: ${p.local||"—"}   |   Grupo: ${p.grupo||"—"}`;
+
+  doc.text(line1, w/2, 140, { align:"center" });
+  doc.text(line2, w/2, 162, { align:"center" });
+
+  return 200; // y inicial do conteúdo
 }
 
-function casoPDFHTML(){
-  const c = getCaso();
-  if(!c.qp && !c.hda && !c.achados && !c.hipoteses && !c.conduta) return "";
-  return boxHTML("Caso clínico do dia (anonimizado)", `
-    <div><b>Queixa principal:</b><br>${nl2br(c.qp)}</div>
-    <div style="margin-top:8px;"><b>História / contexto:</b><br>${nl2br(c.hda)}</div>
-    <div style="margin-top:8px;"><b>Achados relevantes:</b><br>${nl2br(c.achados)}</div>
-    <div style="margin-top:8px;"><b>Hipóteses e diferenciais:</b><br>${nl2br(c.hipoteses)}</div>
-    <div style="margin-top:8px;"><b>Conduta + pontos para estudo:</b><br>${nl2br(c.conduta)}</div>
-  `);
+function addBox(doc, y, title, text){
+  const w = doc.internal.pageSize.getWidth();
+  doc.setDrawColor(207,216,220);
+  doc.roundedRect(44, y, w-88, 90, 12, 12);
+  doc.setFont("helvetica","bold");
+  doc.setTextColor(30,136,229);
+  doc.setFontSize(12);
+  doc.text(title, w/2, y+20, { align:"center" });
+
+  doc.setFont("helvetica","normal");
+  doc.setTextColor(38,50,56);
+  doc.setFontSize(12);
+
+  const lines = doc.splitTextToSize(text || "—", w-110);
+  doc.text(lines, 60, y+42);
+  return y + 110;
 }
 
-function printHTML(inner){
-  const area = $("printArea");
+async function shareOrDownload(pdfBytes, filename){
+  const blob = new Blob([pdfBytes], { type:"application/pdf" });
+  const file = new File([blob], filename, { type:"application/pdf" });
 
-  // força salvar tudo antes do PDF
-  autosaveAlunoSilencioso();
+  // tentar compartilhar como arquivo
+  if (navigator.canShare && navigator.canShare({ files:[file] })) {
+    await navigator.share({ files:[file], title:"ANDY PDF", text:"Relatório gerado pelo ANDY." });
+    return;
+  }
+
+  // fallback: download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+async function gerarPDFDia(){
+  autosaveAluno();
   salvarCaso();
   save();
-
-  // CSS do PDF (fonte 12, borda completa, cantos arredondados, centralizações)
-  const css = `
-    <style>
-      @page { size: A4; margin: 12mm; }
-      body{ font-family: Arial,Helvetica,sans-serif; font-size: 12pt; }
-      .page{
-        border: 2px solid #1E88E5;
-        border-radius: 18px;
-        padding: 12px 14px;
-      }
-      .center{ text-align:center; }
-      table{ width:100%; border-collapse:collapse; font-size:12pt; }
-      th, td{ border:1px solid #cfd8dc; padding:8px; vertical-align:top; }
-      th{ background:#E3F2FD; color:#1E88E5; font-weight:900; }
-      .sign{ display:flex; gap:12px; margin-top:16px; }
-      .sign > div{ flex:1; border-top:1px solid #b0bec5; padding-top:8px; text-align:center; }
-    </style>
-  `;
-
-  area.innerHTML = `${css}<div class="page">${inner}</div>`;
-  void area.offsetHeight;
-  window.print();
-  setTimeout(()=>{ area.innerHTML=""; }, 1600);
-}
-
-function pdfDia(){
   ensureDia();
 
-  const linhas = state.alunos.map(a=>{
-    const r=getReg(a.id);
-    const sc=score(r.notas);
+  const doc = getDoc();
+  let y = drawHeader(doc, "Relatório do Dia");
+
+  // tabela
+  const head = [
+    ["Aluno", "Presença", ...CRITS.map(c=>c.label), "Nota(0–10)", "Obs", "Reposição", "Prevista"]
+  ];
+
+  const body = state.alunos.map(a=>{
+    const r = getReg(a.id);
+    const sc = score(r.notas);
     const precisa = (r.presenca==="Falta") || (r.reposicao==="Sim");
-    return `
-      <tr>
-        <td><b>${esc(a.nome)}</b><br>Mat: ${esc(a.mat||"—")}<br>Tel: ${esc(a.tel||"—")}</td>
-        <td class="center">${esc(r.presenca)}</td>
-        ${CRITS.map(c=>{
-          const v=r.notas[c.key];
-          return `<td class="center">${(v==null)?"—":v}</td>`;
-        }).join("")}
-        <td class="center"><b>${sc.nota10==null?"—":esc(String(sc.nota10))}</b></td>
-        <td>${esc(r.obs||"")}</td>
-        <td class="center">${precisa ? esc(r.repStatus||"pendente") : "—"}</td>
-        <td class="center">${precisa ? esc(r.repData||"—") : "—"}</td>
-      </tr>
-    `;
-  }).join("");
 
-  const tabela = `
-    <div style="margin-top:10px;text-align:center;font-weight:900;color:#1E88E5;">Relatório do Dia</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Aluno</th>
-          <th>Presença</th>
-          ${CRITS.map(c=>`<th>${esc(c.label)}</th>`).join("")}
-          <th>Nota</th>
-          <th>Observações</th>
-          <th>Reposição</th>
-          <th>Prevista</th>
-        </tr>
-      </thead>
-      <tbody>${linhas}</tbody>
-    </table>
-  `;
+    return [
+      `${a.nome}\nMat: ${a.mat||"—"}\nTel: ${a.tel||"—"}`,
+      r.presenca,
+      ...CRITS.map(c => (r.notas[c.key]==null ? "—" : String(r.notas[c.key]))),
+      sc.nota10==null ? "—" : String(sc.nota10),
+      r.obs || "",
+      precisa ? (r.repStatus||"pendente") : "—",
+      precisa ? (r.repData||"—") : "—",
+    ];
+  });
 
-  const html = `
-    ${headerPDF()}
-    ${boxHTML("Resumo do dia", `
-      <div class="center">Total de alunos: <b>${state.alunos.length}</b></div>
-      <div class="center">Gerado pelo ANDY • ${esc(new Date().toLocaleString())}</div>
-    `)}
-    ${boxHTML("Tabela de avaliação", tabela)}
-    ${casoPDFHTML()}
-    <div class="sign">
-      <div>Assinatura do Preceptor</div>
-      <div>Ciência (Turma)</div>
-    </div>
-  `;
+  doc.autoTable({
+    startY: y,
+    head,
+    body,
+    styles: { font:"helvetica", fontSize:10, cellPadding:6, valign:"top" },
+    headStyles: { fillColor:[227,242,253], textColor:[30,136,229], fontStyle:"bold" },
+    theme: "grid",
+    margin: { left:44, right:44 },
+  });
 
-  printHTML(html);
+  y = doc.lastAutoTable.finalY + 14;
+
+  // caso clínico
+  const c = getCaso();
+  const casoTxt =
+`Queixa principal: ${c.qp||"—"}
+
+História/contexto: ${c.hda||"—"}
+
+Achados relevantes: ${c.achados||"—"}
+
+Hipóteses/diferenciais: ${c.hipoteses||"—"}
+
+Conduta/pontos de estudo: ${c.conduta||"—"}`;
+
+  if (c.qp || c.hda || c.achados || c.hipoteses || c.conduta) {
+    // se não couber na página, jsPDF faz paginação manual: simples
+    if (y > 640) { doc.addPage(); y = 60; }
+    y = addBox(doc, y, "Caso clínico do dia (anonimizado)", casoTxt);
+  }
+
+  const bytes = doc.output("arraybuffer");
+  await shareOrDownload(bytes, `ANDY_Relatorio_Dia_${diaKey()}.pdf`);
 }
 
-function pdfAluno(){
-  if(!state.selecionado) return alert("Selecione um aluno.");
+async function gerarPDFAluno(){
+  autosaveAluno();
+  salvarCaso();
+  save();
   ensureDia();
+
+  if(!state.selecionado) return alert("Selecione um aluno.");
 
   const a = state.alunos.find(x=>x.id===state.selecionado);
   const r = getReg(state.selecionado);
   const sc = score(r.notas);
   const precisa = (r.presenca==="Falta") || (r.reposicao==="Sim");
 
-  const notasTabela = `
-    <table>
-      <thead><tr><th>Critério</th><th>Nota</th></tr></thead>
-      <tbody>
-        ${CRITS.map(c=>`<tr><td>${esc(c.label)}</td><td class="center">${(r.notas[c.key]==null)?"—":r.notas[c.key]}</td></tr>`).join("")}
-        <tr><td><b>Nota sugerida (0–10)</b></td><td class="center"><b>${sc.nota10==null?"—":esc(String(sc.nota10))}</b></td></tr>
-      </tbody>
-    </table>
-  `;
+  const doc = getDoc();
+  let y = drawHeader(doc, "Relatório do Aluno");
 
-  const html = `
-    ${headerPDF()}
-    ${boxHTML("Identificação do aluno", `
-      <div class="center"><b>${esc(a?.nome||"—")}</b></div>
-      <div class="center">Matrícula: ${esc(a?.mat||"—")} • Telefone: ${esc(a?.tel||"—")}</div>
-      <div class="center" style="margin-top:6px;">
-        Presença: <b>${esc(r.presenca)}</b> • Reposição: <b>${precisa ? esc(r.repStatus||"pendente") : "—"}</b> • Prevista: <b>${precisa ? esc(r.repData||"—") : "—"}</b>
-      </div>
-      <div style="margin-top:8px;"><b>Observação curta:</b><br>${nl2br(r.obs)}</div>
-    `)}
-    ${boxHTML("Notas", notasTabela)}
-    ${boxHTML("Feedback", `
-      <div><b>Pontos fortes:</b><br>${nl2br(r.feedback?.fortes)}</div>
-      <div style="margin-top:8px;"><b>Pontos a melhorar:</b><br>${nl2br(r.feedback?.melhorar)}</div>
-      <div style="margin-top:8px;"><b>O que estudar / ação prática:</b><br>${nl2br(r.feedback?.estudar)}</div>
-      <div style="margin-top:8px;"><b>Mensagem encorajadora:</b><br>${nl2br(r.feedback?.msg)}</div>
-    `)}
-    ${casoPDFHTML()}
-    <div class="sign">
-      <div>Assinatura do Preceptor</div>
-      <div>Ciência do Aluno</div>
-    </div>
-  `;
-  printHTML(html);
+  y = addBox(doc, y, "Identificação do aluno",
+`Nome: ${a.nome}
+Matrícula: ${a.mat||"—"}
+Telefone: ${a.tel||"—"}
+
+Presença: ${r.presenca}
+Reposição: ${precisa ? (r.repStatus||"pendente") : "—"}
+Prevista: ${precisa ? (r.repData||"—") : "—"}
+
+Observação curta: ${r.obs||"—"}`);
+
+  // tabela de notas
+  const head = [["Critério", "Nota"]];
+  const body = CRITS.map(c=>[c.label, (r.notas[c.key]==null?"—":String(r.notas[c.key]))]);
+  body.push(["Nota sugerida (0–10)", sc.nota10==null?"—":String(sc.nota10)]);
+
+  doc.autoTable({
+    startY: y,
+    head,
+    body,
+    styles: { font:"helvetica", fontSize:11, cellPadding:6 },
+    headStyles: { fillColor:[227,242,253], textColor:[30,136,229], fontStyle:"bold" },
+    theme:"grid",
+    margin:{ left:44, right:44 }
+  });
+
+  y = doc.lastAutoTable.finalY + 14;
+
+  // feedback
+  const fbTxt =
+`Pontos fortes:
+${r.feedback?.fortes || "—"}
+
+Pontos a melhorar:
+${r.feedback?.melhorar || "—"}
+
+O que estudar / ação prática:
+${r.feedback?.estudar || "—"}
+
+Mensagem:
+${r.feedback?.msg || "—"}`;
+
+  if (y > 640) { doc.addPage(); y = 60; }
+  y = addBox(doc, y, "Feedback pedagógico", fbTxt);
+
+  // caso
+  const c = getCaso();
+  const casoTxt =
+`Queixa principal: ${c.qp||"—"}
+
+História/contexto: ${c.hda||"—"}
+
+Achados relevantes: ${c.achados||"—"}
+
+Hipóteses/diferenciais: ${c.hipoteses||"—"}
+
+Conduta/pontos de estudo: ${c.conduta||"—"}`;
+
+  if (c.qp || c.hda || c.achados || c.hipoteses || c.conduta) {
+    if (y > 620) { doc.addPage(); y = 60; }
+    y = addBox(doc, y, "Caso clínico do dia (anonimizado)", casoTxt);
+  }
+
+  const bytes = doc.output("arraybuffer");
+  await shareOrDownload(bytes, `ANDY_Relatorio_Aluno_${a.nome.replace(/\s+/g,"_")}_${diaKey()}.pdf`);
 }
 
-/* ---------- modal + botões ---------- */
+/* botões / eventos */
 function wire(){
   $("dia").value = $("dia").value || hojeISO();
 
   $("btnHoje").onclick = ()=>{ $("dia").value=hojeISO(); renderAll(); };
-  $("btnPDFDia").onclick = ()=>pdfDia();
-  $("btnPDFDia2").onclick = ()=>pdfDia();
-  $("btnPDFAluno").onclick = ()=>pdfAluno();
-  $("btnPDFAluno2").onclick = ()=>pdfAluno();
 
-  $("btnSalvarTudo").onclick = ()=>{ autosaveAlunoSilencioso(); salvarCaso(); save(); alert("Salvo ✅"); };
-  $("btnSalvarTudo2").onclick = ()=>{ autosaveAlunoSilencioso(); salvarCaso(); save(); alert("Salvo ✅"); };
+  $("btnPDFDia").onclick = ()=>gerarPDFDia();
+  $("btnPDFDia2").onclick = ()=>gerarPDFDia();
+  $("btnPDFAluno").onclick = ()=>gerarPDFAluno();
+  $("btnPDFAluno2").onclick = ()=>gerarPDFAluno();
+
+  $("btnSalvarTudo").onclick = ()=>{ autosaveAluno(); salvarCaso(); save(); alert("Salvo ✅"); };
+  $("btnSalvarTudo2").onclick = ()=>{ autosaveAluno(); salvarCaso(); save(); alert("Salvo ✅"); };
 
   $("btnNovoAluno").onclick = ()=>novoAluno();
   $("btnFixar6").onclick = ()=>preencher6();
@@ -727,8 +724,8 @@ function wire(){
 
   ["al_nome","al_mat","al_tel","al_presenca","al_reposicao","al_repdata","al_obs","fb_fortes","fb_melhorar","fb_estudar","fb_msg"]
     .forEach(id=>{
-      $(id).addEventListener("input", ()=>autosaveAlunoSilencioso());
-      $(id).addEventListener("change", ()=>autosaveAlunoSilencioso());
+      $(id).addEventListener("input", ()=>autosaveAluno());
+      $(id).addEventListener("change", ()=>autosaveAluno());
     });
 
   ["caso_qp","caso_hda","caso_achados","caso_hipoteses","caso_conduta"]
@@ -739,7 +736,4 @@ function wire(){
   }
 }
 
-(function init(){
-  wire();
-  load();
-})();
+(function init(){ wire(); load(); })();
