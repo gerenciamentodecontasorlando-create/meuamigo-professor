@@ -1,4 +1,4 @@
-const CACHE = "andy-pro-v2-pdf";
+const CACHE = "andy-pro-v3-realpdf";
 const CORE = [
   "./",
   "./index.html",
