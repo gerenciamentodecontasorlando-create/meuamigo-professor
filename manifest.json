@@ -1,8 +1,10 @@
 {
-  "name": "ANDY PRO",
+  "name": "ANDY PRO — Clínica Integrada",
   "short_name": "ANDY",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "background_color": "#ffffff",
   "theme_color": "#1E88E5",
-  "background_color": "#ffffff"
+  "description": "App offline para preceptores: notas 0/3/5 em tempo real, feedback, reposições, histórico por data e caso do dia, com PDF."
 }
