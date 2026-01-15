@@ -12,10 +12,13 @@
 <body>
   <header class="top">
     <div class="brand">
-      <div class="logoA" aria-hidden="true">A</div>
+      <div class="logoBadge" aria-hidden="true">
+        <div class="logoA">A</div>
+        <div class="logoNDY">NDY</div>
+      </div>
       <div class="brandText">
         <div class="title">ANDY PRO</div>
-        <div class="subtitle">Assistente de Rodízio • Clínica Integrada • Offline • PDF</div>
+        <div class="subtitle">Clínica Integrada • Avaliação • Feedback • Reposições • Offline • PDF</div>
       </div>
     </div>
 
@@ -23,12 +26,12 @@
       <button class="btn ghost" id="btnHoje">Hoje</button>
       <button class="btn ghost" id="btnPDFDia">PDF do Dia</button>
       <button class="btn ghost" id="btnPDFAluno">PDF do Aluno</button>
-      <button class="btn" id="btnSalvarTudo">Salvar (Tudo)</button>
+      <button class="btn" id="btnSalvarTudo">Salvar</button>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- COLUNA ESQUERDA -->
+    <!-- ESQUERDA -->
     <aside class="col left">
       <section class="card">
         <h2>Preceptor</h2>
@@ -64,14 +67,14 @@
         </div>
 
         <div class="hint">
-          ✔ Autosave ligado (offline). Cada data tem seu próprio relatório e caso clínico.
+          ✔ Autosave offline. Cada data tem seu próprio relatório + caso clínico do dia.
         </div>
       </section>
 
       <section class="card">
         <div class="rowTitle">
           <h2>Alunos (até 6)</h2>
-          <span class="pill">Clique no nome para abrir o cartão</span>
+          <span class="pill">Clique no nome</span>
         </div>
 
         <div class="rowActions">
@@ -81,22 +84,18 @@
         </div>
 
         <div id="listaAlunos" class="list"></div>
-
-        <div class="hint">
-          Dica prática: no ambulatório, você usa a grade (modo rápido). Se precisar, abre o cartão do aluno e dá o feedback bonito.
-        </div>
       </section>
 
       <section class="card">
         <div class="rowTitle">
           <h2>Reposições (fila)</h2>
-          <span class="pill">Falta → entra automático</span>
+          <span class="pill">Falta → entra</span>
         </div>
         <div id="filaReposicoes" class="repList"></div>
       </section>
     </aside>
 
-    <!-- COLUNA DIREITA -->
+    <!-- DIREITA -->
     <section class="col right">
       <section class="card">
         <div class="rowTitle">
@@ -109,7 +108,7 @@
         </div>
 
         <div class="rowActions">
-          <button class="btn" id="btnSalvarTudo2">Salvar (Tudo)</button>
+          <button class="btn" id="btnSalvarTudo2">Salvar</button>
           <button class="btn ghost" id="btnPDFDia2">PDF do Dia</button>
         </div>
       </section>
@@ -159,8 +158,8 @@
           </div>
         </div>
 
-        <label>Observação curta (rápida)</label>
-        <textarea id="al_obs" placeholder="Ex.: boa anamnese; revisar exame físico; melhorar apresentação do caso..."></textarea>
+        <label>Observação curta</label>
+        <textarea id="al_obs" placeholder="Ex.: boa anamnese; revisar exame físico; organizar apresentação do caso..."></textarea>
 
         <div class="divider"></div>
 
@@ -177,67 +176,63 @@
             <div class="val" id="notaBox">—</div>
           </div>
           <button class="btn" id="btnSalvarAluno">Salvar aluno</button>
-          <button class="btn ghost" id="btnVerHistorico">Ver histórico</button>
+          <button class="btn ghost" id="btnVerHistorico">Histórico</button>
         </div>
 
         <div class="divider"></div>
 
-        <h3 class="subh">Feedback pedagógico (corrigir sem ferir)</h3>
+        <h3 class="subh">Feedback (sem ferir)</h3>
         <div class="grid2">
           <div>
             <label>Pontos fortes</label>
-            <textarea id="fb_fortes" placeholder="Específico e justo. Ex.: boa postura, boa escuta, bom raciocínio..."></textarea>
+            <textarea id="fb_fortes"></textarea>
           </div>
           <div>
             <label>Pontos a melhorar</label>
-            <textarea id="fb_melhorar" placeholder="Sempre orientador. Ex.: revisar semiologia, organizar SOAP..."></textarea>
+            <textarea id="fb_melhorar"></textarea>
           </div>
         </div>
         <div class="grid2">
           <div>
             <label>O que estudar / ação prática</label>
-            <textarea id="fb_estudar" placeholder="Ex.: revisar dor torácica / exame físico cardiovascular / conduta no IAM..."></textarea>
+            <textarea id="fb_estudar"></textarea>
           </div>
           <div>
             <label>Mensagem encorajadora</label>
-            <textarea id="fb_msg" placeholder="Frase final que motiva e aponta o próximo passo"></textarea>
+            <textarea id="fb_msg"></textarea>
           </div>
         </div>
 
         <div class="rowActions">
-          <button class="btn ghost" id="btnFBNeutro">Gerar feedback (neutro)</button>
-          <button class="btn ghost" id="btnFBEnc">Gerar feedback (encorajador)</button>
-          <button class="btn ghost" id="btnFBDireto">Gerar feedback (direto)</button>
+          <button class="btn ghost" id="btnFBNeutro">Feedback neutro</button>
+          <button class="btn ghost" id="btnFBEnc">Feedback encorajador</button>
+          <button class="btn ghost" id="btnFBDireto">Feedback direto</button>
           <button class="btn ghost" id="btnPDFAluno2">PDF do Aluno</button>
-        </div>
-
-        <div class="hint">
-          O ANDY não “julga” aluno: ele transforma correção em plano de evolução.
         </div>
       </section>
 
       <section class="card">
         <div class="rowTitle">
           <h2>Caso Clínico do Dia (anonimizado)</h2>
-          <span class="pill">vira material de estudo</span>
+          <span class="pill">material de estudo</span>
         </div>
 
-        <div class="hint">Sem identificar paciente. Foque em raciocínio clínico e conduta.</div>
+        <div class="hint">Não identificar paciente. Foque em raciocínio clínico e conduta.</div>
 
         <label>Queixa principal</label>
-        <textarea id="caso_qp" placeholder="Ex.: dor torácica há 2h..."></textarea>
+        <textarea id="caso_qp"></textarea>
 
         <label>História / contexto</label>
-        <textarea id="caso_hda" placeholder="HDA/ antecedentes / medicações (sem dados identificáveis)"></textarea>
+        <textarea id="caso_hda"></textarea>
 
         <label>Achados relevantes</label>
-        <textarea id="caso_achados" placeholder="Exame físico / exames / sinais de gravidade"></textarea>
+        <textarea id="caso_achados"></textarea>
 
         <label>Hipóteses e diferenciais</label>
-        <textarea id="caso_hipoteses" placeholder="Raciocínio diagnóstico"></textarea>
+        <textarea id="caso_hipoteses"></textarea>
 
         <label>Conduta + pontos para estudo</label>
-        <textarea id="caso_conduta" placeholder="Conduta do dia + o que revisar"></textarea>
+        <textarea id="caso_conduta"></textarea>
 
         <div class="rowActions">
           <button class="btn ghost" id="btnLimparCaso">Limpar caso (só essa data)</button>
@@ -246,7 +241,6 @@
     </section>
   </main>
 
-  <!-- Modal histórico -->
   <div class="modal" id="modal">
     <div class="modalBox">
       <div class="modalHead">
@@ -257,7 +251,7 @@
     </div>
   </div>
 
-  <!-- Área de impressão (PDF) -->
+  <!-- área do PDF -->
   <div id="printArea" class="printOnly"></div>
 
   <script src="app.js"></script>
