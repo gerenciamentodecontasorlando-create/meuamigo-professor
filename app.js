@@ -1,11 +1,5 @@
 /* ANDY PRO — app.js
-   ✔ Offline (localStorage)
-   ✔ Até 6 alunos por preceptor
-   ✔ Modo rápido (— → 0 → 3 → 5)
-   ✔ Cartão do aluno (notas + feedback + presença + reposição)
-   ✔ Histórico por DATA (não mistura dias)
-   ✔ Caso clínico do dia (anonimizado) por data
-   ✔ PDF do dia / PDF do aluno com identificação do aluno
+   PDF bonito: fonte 12, bordas completas, cantos arredondados, logo em destaque, layout organizado.
 */
 
 const CRITS = [
@@ -17,7 +11,7 @@ const CRITS = [
   { key: "expressividade", label: "Expressividade" },
 ];
 
-const STORAGE_KEY = "ANDY_PRO_V1";
+const STORAGE_KEY = "ANDY_PRO_V2_PDF";
 
 const $ = (id) => document.getElementById(id);
 
@@ -26,28 +20,25 @@ function hojeISO() {
   const tz = d.getTimezoneOffset() * 60000;
   return new Date(d - tz).toISOString().slice(0, 10);
 }
-
-function uid() {
-  return Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
+function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 
 function esc(s) {
   return (s ?? "").toString().replace(/[&<>"']/g, (m) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[m]));
 }
+function nl2br(s){ return esc(s || "—").replace(/\n/g,"<br>"); }
 
-function cycle(v) {
+function cycle(v){
   if (v === null || v === undefined) return 0;
   if (v === 0) return 3;
   if (v === 3) return 5;
-  return null; // volta para —
+  return null;
 }
 
 function defaultNotas() {
   return Object.fromEntries(CRITS.map(c => [c.key, null]));
 }
-
 function defaultRegistroDia() {
   return {
     presenca: "Presente",
@@ -56,60 +47,46 @@ function defaultRegistroDia() {
     obs: "",
     notas: defaultNotas(),
     feedback: { fortes: "", melhorar: "", estudar: "", msg: "" },
-    repStatus: "pendente" // pendente|feita
+    repStatus: "pendente"
   };
 }
+function defaultCaso(){ return { qp:"", hda:"", achados:"", hipoteses:"", conduta:"" }; }
 
-function defaultCaso() {
-  return { qp: "", hda: "", achados: "", hipoteses: "", conduta: "" };
-}
-
-// Estado principal (tudo offline)
 let state = {
   preceptor: { nome: "", tel: "", disc: "Clínica Integrada", local: "", grupo: "" },
-  alunos: [], // [{id,nome,mat,tel}]
-  // dias: { "2026-01-14": { registros: { alunoId: registroDia }, caso: casoDia } }
+  alunos: [],
   dias: {},
   selecionado: null
 };
 
-function diaKey() {
-  return $("dia").value || hojeISO();
-}
+function diaKey(){ return $("dia").value || hojeISO(); }
 
 function ensureDia() {
   const k = diaKey();
   if (!state.dias[k]) state.dias[k] = { registros: {}, caso: defaultCaso() };
-
-  // garantir registro do dia para cada aluno existente
   state.alunos.forEach(a => {
     if (!state.dias[k].registros[a.id]) state.dias[k].registros[a.id] = defaultRegistroDia();
   });
 }
 
-function getReg(alunoId) {
+function getReg(alunoId){
   ensureDia();
   const k = diaKey();
   if (!state.dias[k].registros[alunoId]) state.dias[k].registros[alunoId] = defaultRegistroDia();
   return state.dias[k].registros[alunoId];
 }
+function getCaso(){ ensureDia(); return state.dias[diaKey()].caso; }
 
-function getCaso() {
-  ensureDia();
-  return state.dias[diaKey()].caso;
+function score(notas){
+  const vals = Object.values(notas||{}).filter(v=>typeof v==="number");
+  const max = CRITS.length*5;
+  if(!vals.length) return {sum:null,max,nota10:null};
+  const sum = vals.reduce((a,b)=>a+b,0);
+  const nota10 = Math.round(((sum/max)*10)*10)/10;
+  return {sum,max,nota10};
 }
 
-function score(notas) {
-  const vals = Object.values(notas || {}).filter(v => typeof v === "number");
-  const max = CRITS.length * 5;
-  if (!vals.length) return { sum: null, max, nota10: null };
-  const sum = vals.reduce((a, b) => a + b, 0);
-  const nota10 = Math.round(((sum / max) * 10) * 10) / 10;
-  return { sum, max, nota10 };
-}
-
-function save() {
-  // capturar preceptor
+function save(){
   state.preceptor = {
     nome: $("prof_nome").value || "",
     tel: $("prof_tel").value || "",
@@ -119,14 +96,12 @@ function save() {
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
-
-function load() {
+function load(){
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try { state = JSON.parse(raw); } catch (e) {}
+  if(raw){
+    try{ state = JSON.parse(raw); }catch(e){}
   }
-  // saneamento
-  state.preceptor ||= { nome: "", tel: "", disc: "Clínica Integrada", local: "", grupo: "" };
+  state.preceptor ||= { nome:"", tel:"", disc:"Clínica Integrada", local:"", grupo:"" };
   state.alunos ||= [];
   state.dias ||= {};
   state.selecionado ||= null;
@@ -135,12 +110,12 @@ function load() {
   fillPreceptor();
   ensureDia();
 
-  if (!state.selecionado && state.alunos.length) state.selecionado = state.alunos[0].id;
+  if(!state.selecionado && state.alunos.length) state.selecionado = state.alunos[0].id;
 
   renderAll();
 }
 
-function fillPreceptor() {
+function fillPreceptor(){
   $("prof_nome").value = state.preceptor.nome || "";
   $("prof_tel").value = state.preceptor.tel || "";
   $("prof_disc").value = state.preceptor.disc || "Clínica Integrada";
@@ -148,8 +123,7 @@ function fillPreceptor() {
   $("prof_grupo").value = state.preceptor.grupo || "";
 }
 
-// ---------- UI RENDER ----------
-function renderAll() {
+function renderAll(){
   ensureDia();
   renderListaAlunos();
   renderTabelaRapida();
@@ -160,36 +134,29 @@ function renderAll() {
   save();
 }
 
-function renderListaAlunos() {
+function renderListaAlunos(){
   const wrap = $("listaAlunos");
   wrap.innerHTML = "";
-
-  if (!state.alunos.length) {
-    wrap.innerHTML = `<div class="hint">Sem alunos cadastrados. Clique em “+ Novo aluno”.</div>`;
+  if(!state.alunos.length){
+    wrap.innerHTML = `<div class="hint">Sem alunos. Clique em “+ Novo aluno”.</div>`;
     return;
   }
-
-  state.alunos.forEach(a => {
+  state.alunos.forEach(a=>{
     const r = getReg(a.id);
-    const btn = document.createElement("button");
-    btn.className = (state.selecionado === a.id) ? "active" : "";
-
     const sc = score(r.notas);
-    const notaTxt = sc.nota10 === null ? "—" : sc.nota10;
+    const notaTxt = sc.nota10==null ? "—" : sc.nota10;
 
-    btn.innerHTML = `
-      <b>${esc(a.nome)}</b>
-      <div class="sub">Mat: ${esc(a.mat || "—")} • ${esc(r.presenca)} • Nota: ${esc(notaTxt)}</div>
-    `;
-    btn.onclick = () => { state.selecionado = a.id; renderAll(); };
+    const btn = document.createElement("button");
+    btn.className = (state.selecionado===a.id) ? "active" : "";
+    btn.innerHTML = `<b>${esc(a.nome)}</b><div class="sub">Mat: ${esc(a.mat||"—")} • ${esc(r.presenca)} • Nota: ${esc(notaTxt)}</div>`;
+    btn.onclick = ()=>{ state.selecionado=a.id; renderAll(); };
     wrap.appendChild(btn);
   });
 }
 
-function renderTabelaRapida() {
+function renderTabelaRapida(){
   const tb = $("tabelaRapida");
-
-  if (!state.alunos.length) {
+  if(!state.alunos.length){
     tb.innerHTML = `<tr><td style="padding:14px;color:#607D8B">Cadastre alunos para usar o modo rápido.</td></tr>`;
     return;
   }
@@ -198,18 +165,18 @@ function renderTabelaRapida() {
     <tr>
       <th>Aluno</th>
       <th>Presença</th>
-      ${CRITS.map(c => `<th>${esc(c.label)}</th>`).join("")}
+      ${CRITS.map(c=>`<th>${esc(c.label)}</th>`).join("")}
       <th>Obs curta</th>
       <th>Reposição</th>
     </tr>`;
 
-  const rows = state.alunos.map(a => {
+  const rows = state.alunos.map(a=>{
     const r = getReg(a.id);
 
-    const cells = CRITS.map(c => {
+    const cells = CRITS.map(c=>{
       const v = r.notas[c.key];
-      const cls = (v === null || v === undefined) ? "v" : (v === 0 ? "n0" : (v === 3 ? "n3" : "n5"));
-      const txt = (v === null || v === undefined) ? "—" : v;
+      const cls = (v==null) ? "v" : (v===0?"n0":(v===3?"n3":"n5"));
+      const txt = (v==null) ? "—" : v;
       return `<td class="cellTap ${cls}" onclick="toggleNota('${a.id}','${c.key}')">${txt}</td>`;
     }).join("");
 
@@ -217,22 +184,21 @@ function renderTabelaRapida() {
       <tr>
         <td>
           <b style="cursor:pointer" onclick="selectAluno('${a.id}')">${esc(a.nome)}</b><br/>
-          <span style="color:#607D8B;font-size:12px">Mat: ${esc(a.mat || "—")}</span>
+          <span style="color:#607D8B;font-size:12px">Mat: ${esc(a.mat||"—")}</span>
         </td>
         <td>
           <select onchange="setPresenca('${a.id}', this.value)">
-            ${["Presente", "Atraso", "Falta"].map(p => `<option ${r.presenca === p ? "selected" : ""}>${p}</option>`).join("")}
+            ${["Presente","Atraso","Falta"].map(p=>`<option ${r.presenca===p?"selected":""}>${p}</option>`).join("")}
           </select>
         </td>
         ${cells}
         <td>
-          <input value="${esc(r.obs || "")}" placeholder="ex.: revisar SOAP"
-            oninput="setObs('${a.id}', this.value)" />
+          <input value="${esc(r.obs||"")}" placeholder="ex.: revisar SOAP" oninput="setObs('${a.id}', this.value)" />
         </td>
         <td>
           <select onchange="setReposicao('${a.id}', this.value)">
-            <option ${r.reposicao === "Não" ? "selected" : ""}>Não</option>
-            <option ${r.reposicao === "Sim" ? "selected" : ""}>Sim</option>
+            <option ${r.reposicao==="Não"?"selected":""}>Não</option>
+            <option ${r.reposicao==="Sim"?"selected":""}>Sim</option>
           </select>
         </td>
       </tr>
@@ -242,44 +208,39 @@ function renderTabelaRapida() {
   tb.innerHTML = head + rows;
 }
 
-function renderCriteriosCard() {
+function renderCriteriosCard(){
   const wrap = $("criterios");
   wrap.innerHTML = "";
-
-  if (!state.selecionado) return;
+  if(!state.selecionado) return;
   const r = getReg(state.selecionado);
 
-  CRITS.forEach(c => {
+  CRITS.forEach(c=>{
     const v = r.notas[c.key];
     const row = document.createElement("div");
-    row.className = "crit";
+    row.className="crit";
     row.innerHTML = `
       <b>${esc(c.label)}</b>
       <div class="critBtns">
-        <button class="pbtn ${v === 0 ? "active" : ""}" onclick="setNotaCard('${c.key}',0)">0</button>
-        <button class="pbtn ${v === 3 ? "active" : ""}" onclick="setNotaCard('${c.key}',3)">3</button>
-        <button class="pbtn ${v === 5 ? "active" : ""}" onclick="setNotaCard('${c.key}',5)">5</button>
+        <button class="pbtn ${v===0?"active":""}" onclick="setNotaCard('${c.key}',0)">0</button>
+        <button class="pbtn ${v===3?"active":""}" onclick="setNotaCard('${c.key}',3)">3</button>
+        <button class="pbtn ${v===5?"active":""}" onclick="setNotaCard('${c.key}',5)">5</button>
       </div>
     `;
     wrap.appendChild(row);
   });
 }
 
-function renderCartaoAluno() {
+function renderCartaoAluno(){
   const tag = $("alunoTag");
-
-  if (!state.selecionado) {
-    tag.textContent = "Selecione um aluno";
-    $("al_nome").value = "";
-    $("al_mat").value = "";
-    $("al_tel").value = "";
+  if(!state.selecionado){
+    tag.textContent="Selecione um aluno";
     return;
   }
 
-  const a = state.alunos.find(x => x.id === state.selecionado);
+  const a = state.alunos.find(x=>x.id===state.selecionado);
   const r = getReg(state.selecionado);
 
-  tag.textContent = a?.nome ? `Selecionado: ${a.nome}` : "Aluno";
+  tag.textContent = `Selecionado: ${a?.nome || "Aluno"}`;
 
   $("al_nome").value = a?.nome || "";
   $("al_mat").value = a?.mat || "";
@@ -296,51 +257,42 @@ function renderCartaoAluno() {
   $("fb_msg").value = r.feedback?.msg || "";
 
   const sc = score(r.notas);
-  $("scoreBox").textContent = (sc.sum === null) ? "—" : `${sc.sum}/${sc.max}`;
-  $("notaBox").textContent = (sc.nota10 === null) ? "—" : `${sc.nota10}`;
+  $("scoreBox").textContent = (sc.sum==null) ? "—" : `${sc.sum}/${sc.max}`;
+  $("notaBox").textContent  = (sc.nota10==null) ? "—" : `${sc.nota10}`;
 }
 
-function renderFilaReposicoes() {
+function renderFilaReposicoes(){
   const wrap = $("filaReposicoes");
   wrap.innerHTML = "";
-
-  if (!state.alunos.length) {
+  if(!state.alunos.length){
     wrap.innerHTML = `<div class="hint">Cadastre alunos para aparecer reposições.</div>`;
     return;
   }
 
   const fila = [];
-  state.alunos.forEach(a => {
+  state.alunos.forEach(a=>{
     const r = getReg(a.id);
-    const precisa = (r.presenca === "Falta") || (r.reposicao === "Sim");
-    if (precisa) {
-      fila.push({
-        id: a.id,
-        nome: a.nome,
-        mat: a.mat || "",
-        repData: r.repData || "",
-        status: r.repStatus || "pendente"
-      });
+    const precisa = (r.presenca==="Falta") || (r.reposicao==="Sim");
+    if(precisa){
+      fila.push({ id:a.id, nome:a.nome, mat:a.mat||"", repData:r.repData||"", status:r.repStatus||"pendente" });
     }
   });
 
-  if (!fila.length) {
-    wrap.innerHTML = `<div class="hint">Sem reposições pendentes no dia selecionado ✅</div>`;
+  if(!fila.length){
+    wrap.innerHTML = `<div class="hint">Sem reposições pendentes no dia ✅</div>`;
     return;
   }
 
-  fila.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "repItem";
+  fila.forEach(item=>{
+    const div=document.createElement("div");
+    div.className="repItem";
     div.innerHTML = `
       <div>
         <b>${esc(item.nome)}</b>
-        <div class="meta">Mat: ${esc(item.mat || "—")} • Prev: ${esc(item.repData || "—")}</div>
+        <div class="meta">Mat: ${esc(item.mat||"—")} • Prev: ${esc(item.repData||"—")}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span class="tag ${item.status === "feita" ? "feita" : "pendente"}">
-          ${item.status === "feita" ? "Feita" : "Pendente"}
-        </span>
+        <span class="tag ${item.status==="feita"?"feita":"pendente"}">${item.status==="feita"?"Feita":"Pendente"}</span>
         <button class="btn ghost" onclick="toggleRep('${item.id}')">Alternar</button>
       </div>
     `;
@@ -348,7 +300,7 @@ function renderFilaReposicoes() {
   });
 }
 
-function renderCaso() {
+function renderCaso(){
   const c = getCaso();
   $("caso_qp").value = c.qp || "";
   $("caso_hda").value = c.hda || "";
@@ -357,91 +309,49 @@ function renderCaso() {
   $("caso_conduta").value = c.conduta || "";
 }
 
-// ---------- AÇÕES (expostas para HTML inline) ----------
-window.selectAluno = function(id){
-  state.selecionado = id;
-  renderAll();
-}
+/* ---------- ações expostas ---------- */
+window.selectAluno = (id)=>{ state.selecionado=id; renderAll(); };
+window.toggleNota = (alunoId, critKey)=>{ const r=getReg(alunoId); r.notas[critKey]=cycle(r.notas[critKey]); renderAll(); };
+window.setPresenca = (alunoId, val)=>{ const r=getReg(alunoId); r.presenca=val; if(val==="Falta") r.reposicao="Sim"; renderAll(); };
+window.setReposicao = (alunoId, val)=>{ const r=getReg(alunoId); r.reposicao=val; renderAll(); };
+window.setObs = (alunoId, val)=>{ const r=getReg(alunoId); r.obs=val; save(); };
+window.setNotaCard = (critKey, val)=>{ if(!state.selecionado) return; const r=getReg(state.selecionado); r.notas[critKey]=val; renderAll(); };
+window.toggleRep = (alunoId)=>{ const r=getReg(alunoId); r.repStatus = (r.repStatus==="feita") ? "pendente" : "feita"; renderAll(); };
 
-window.toggleNota = function(alunoId, critKey){
-  const r = getReg(alunoId);
-  r.notas[critKey] = cycle(r.notas[critKey]);
-  renderAll();
-}
-
-window.setPresenca = function(alunoId, val){
-  const r = getReg(alunoId);
-  r.presenca = val;
-  if (val === "Falta") r.reposicao = "Sim";
-  renderAll();
-}
-
-window.setReposicao = function(alunoId, val){
-  const r = getReg(alunoId);
-  r.reposicao = val;
-  renderAll();
-}
-
-window.setObs = function(alunoId, val){
-  const r = getReg(alunoId);
-  r.obs = val;
-  save();
-}
-
-window.setNotaCard = function(critKey, val){
-  if(!state.selecionado) return;
-  const r = getReg(state.selecionado);
-  r.notas[critKey] = val;
-  renderAll();
-}
-
-window.toggleRep = function(alunoId){
-  const r = getReg(alunoId);
-  r.repStatus = (r.repStatus === "feita") ? "pendente" : "feita";
-  renderAll();
-}
-
-// ---------- CRUD ALUNOS ----------
+/* ---------- alunos ---------- */
 function novoAluno(nomeDefault){
-  if (state.alunos.length >= 6) return alert("Máximo de 6 alunos por grupo.");
-  const a = { id: uid(), nome: nomeDefault || `Aluno ${state.alunos.length + 1}`, mat: "", tel: "" };
+  if(state.alunos.length>=6) return alert("Máximo de 6 alunos.");
+  const a = { id:uid(), nome:nomeDefault || `Aluno ${state.alunos.length+1}`, mat:"", tel:"" };
   state.alunos.push(a);
   ensureDia();
   state.selecionado = a.id;
   renderAll();
 }
-
 function preencher6(){
-  while(state.alunos.length < 6){
-    novoAluno(`Aluno ${state.alunos.length + 1}`);
-  }
+  while(state.alunos.length<6) novoAluno(`Aluno ${state.alunos.length+1}`);
 }
-
 function limparDia(){
-  if (!confirm("Limpar as notas/observações do DIA atual (não apaga outros dias)?")) return;
+  if(!confirm("Limpar notas/obs do DIA atual (não apaga outros dias)?")) return;
   ensureDia();
   const k = diaKey();
-  state.alunos.forEach(a=>{
-    state.dias[k].registros[a.id] = defaultRegistroDia();
-  });
+  state.alunos.forEach(a=> state.dias[k].registros[a.id] = defaultRegistroDia());
   renderAll();
 }
 
-// ---------- SALVAR ALUNO (CARTÃO) ----------
+/* ---------- salvar aluno e autosave ---------- */
 function salvarAluno(){
-  if (!state.selecionado) return alert("Selecione um aluno.");
-
-  const a = state.alunos.find(x => x.id === state.selecionado);
+  if(!state.selecionado) return alert("Selecione um aluno.");
+  const a = state.alunos.find(x=>x.id===state.selecionado);
   const r = getReg(state.selecionado);
 
   a.nome = $("al_nome").value || a.nome;
-  a.mat = $("al_mat").value || "";
-  a.tel = $("al_tel").value || "";
+  a.mat  = $("al_mat").value || "";
+  a.tel  = $("al_tel").value || "";
 
-  r.presenca = $("al_presenca").value;
+  r.presenca  = $("al_presenca").value;
   r.reposicao = $("al_reposicao").value;
-  r.repData = $("al_repdata").value || "";
-  r.obs = $("al_obs").value || "";
+  r.repData   = $("al_repdata").value || "";
+  r.obs       = $("al_obs").value || "";
 
   r.feedback = {
     fortes: $("fb_fortes").value || "",
@@ -450,25 +360,25 @@ function salvarAluno(){
     msg: $("fb_msg").value || ""
   };
 
-  if (r.presenca === "Falta") r.reposicao = "Sim";
+  if(r.presenca==="Falta") r.reposicao="Sim";
 
   renderAll();
   alert("Aluno salvo ✅");
 }
 
 function autosaveAlunoSilencioso(){
-  if (!state.selecionado) return;
-  const a = state.alunos.find(x => x.id === state.selecionado);
+  if(!state.selecionado) return;
+  const a = state.alunos.find(x=>x.id===state.selecionado);
   const r = getReg(state.selecionado);
 
   a.nome = $("al_nome").value || a.nome;
-  a.mat = $("al_mat").value || "";
-  a.tel = $("al_tel").value || "";
+  a.mat  = $("al_mat").value || "";
+  a.tel  = $("al_tel").value || "";
 
-  r.presenca = $("al_presenca").value;
+  r.presenca  = $("al_presenca").value;
   r.reposicao = $("al_reposicao").value;
-  r.repData = $("al_repdata").value || "";
-  r.obs = $("al_obs").value || "";
+  r.repData   = $("al_repdata").value || "";
+  r.obs       = $("al_obs").value || "";
 
   r.feedback = {
     fortes: $("fb_fortes").value || "",
@@ -477,11 +387,11 @@ function autosaveAlunoSilencioso(){
     msg: $("fb_msg").value || ""
   };
 
-  if (r.presenca === "Falta") r.reposicao = "Sim";
+  if(r.presenca==="Falta") r.reposicao="Sim";
   save();
 }
 
-// ---------- CASO DO DIA ----------
+/* ---------- caso ---------- */
 function salvarCaso(){
   const c = getCaso();
   c.qp = $("caso_qp").value || "";
@@ -491,35 +401,33 @@ function salvarCaso(){
   c.conduta = $("caso_conduta").value || "";
   save();
 }
-
 function limparCaso(){
-  if (!confirm("Limpar o caso do dia (somente a data selecionada)?")) return;
-  const c = getCaso();
-  c.qp = c.hda = c.achados = c.hipoteses = c.conduta = "";
-  renderAll();
-  save();
+  if(!confirm("Limpar o caso do dia (só essa data)?")) return;
+  const c=getCaso();
+  c.qp=c.hda=c.achados=c.hipoteses=c.conduta="";
+  renderAll(); save();
 }
 
-// ---------- FEEDBACK GERADOR (sem humilhar) ----------
+/* ---------- feedback gerador ---------- */
 function gerarFeedback(modo){
-  if (!state.selecionado) return alert("Selecione um aluno.");
-  const fortes = ($("fb_fortes").value || "—").trim();
-  const melhorar = ($("fb_melhorar").value || "—").trim();
+  if(!state.selecionado) return alert("Selecione um aluno.");
+  const fortes  = ($("fb_fortes").value || "—").trim();
+  const melhorar= ($("fb_melhorar").value || "—").trim();
   const estudar = ($("fb_estudar").value || "—").trim();
 
   let intro="", fim="";
-  if (modo === "encorajador"){
-    intro = "Você está evoluindo. O objetivo aqui é acelerar tua curva de aprendizado com segurança.";
-    fim = "Segue firme — com constância, tua performance sobe rápido.";
-  } else if (modo === "direto"){
-    intro = "Feedback objetivo da prática (pra te deixar mais forte):";
-    fim = "Próxima prática: execute isso com consistência e eu reviso contigo.";
+  if(modo==="encorajador"){
+    intro="Você está evoluindo. O objetivo aqui é acelerar tua curva de aprendizado com segurança.";
+    fim="Segue firme — com constância, tua performance sobe rápido.";
+  } else if(modo==="direto"){
+    intro="Feedback objetivo da prática (pra te deixar mais forte):";
+    fim="Próxima prática: execute isso com consistência e eu reviso contigo.";
   } else {
-    intro = "Feedback do dia (orientador):";
-    fim = "A ideia é te guiar no próximo passo, sem pressão desnecessária.";
+    intro="Feedback do dia (orientador):";
+    fim="A ideia é te guiar no próximo passo, sem pressão desnecessária.";
   }
 
-  const msg =
+  $("fb_msg").value =
 `${intro}
 
 ✅ Pontos fortes:
@@ -534,244 +442,277 @@ function gerarFeedback(modo){
 🤝 Mensagem:
 ${fim}`;
 
-  $("fb_msg").value = msg;
   autosaveAlunoSilencioso();
   alert("Feedback gerado ✅");
 }
 
-// ---------- HISTÓRICO (por data) ----------
+/* ---------- histórico modal ---------- */
 function abrirHistorico(){
-  if (!state.selecionado) return alert("Selecione um aluno.");
+  if(!state.selecionado) return alert("Selecione um aluno.");
+  const a = state.alunos.find(x=>x.id===state.selecionado);
 
-  const a = state.alunos.find(x => x.id === state.selecionado);
-  const registros = [];
-
+  const regs = [];
   Object.keys(state.dias).sort().forEach(d=>{
     const reg = state.dias[d]?.registros?.[a.id];
-    if (!reg) return;
-    const sc = score(reg.notas);
-    const precisaRep = (reg.presenca === "Falta") || (reg.reposicao === "Sim");
-    registros.push({
-      data: d,
-      presenca: reg.presenca,
-      nota: sc.nota10,
-      score: sc.sum,
-      obs: reg.obs || "",
-      rep: precisaRep ? `${reg.repStatus || "pendente"} / ${reg.repData || "—"}` : "—"
+    if(!reg) return;
+    const sc=score(reg.notas);
+    const precisa = (reg.presenca==="Falta") || (reg.reposicao==="Sim");
+    regs.push({
+      data:d,
+      presenca:reg.presenca,
+      nota:sc.nota10,
+      obs:reg.obs||"",
+      rep:precisa ? `${reg.repStatus||"pendente"} / ${reg.repData||"—"}` : "—"
     });
   });
 
-  const body = $("modalBody");
-  body.innerHTML = `
-    <div style="margin-bottom:10px;"><b>Aluno:</b> ${esc(a.nome)} • <b>Mat:</b> ${esc(a.mat||"—")}</div>
-    ${registros.length ? `
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:#E3F2FD;color:#1E88E5;">
-            <th style="border:1px solid #cfd8dc;padding:8px;">Data</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Presença</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Nota</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Obs</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Reposição</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${registros.map(r=>`
-            <tr>
-              <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.data)}</td>
-              <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.presenca)}</td>
-              <td style="border:1px solid #cfd8dc;padding:8px;">${r.nota==null?"—":esc(String(r.nota))}</td>
-              <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.obs)}</td>
-              <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.rep)}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    ` : `<div class="hint">Sem histórico ainda. Preencha pelo menos um dia.</div>`}
-  `;
-
   $("modalTitle").textContent = `Histórico — ${a.nome}`;
+  $("modalBody").innerHTML = regs.length ? `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#E3F2FD;color:#1E88E5;">
+          <th style="border:1px solid #cfd8dc;padding:8px;">Data</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Presença</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Nota</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Obs</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Reposição</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${regs.map(r=>`
+          <tr>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.data)}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.presenca)}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${r.nota==null?"—":esc(String(r.nota))}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.obs)}</td>
+            <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.rep)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  ` : `<div style="color:#607D8B;">Sem histórico ainda.</div>`;
+
   $("modal").classList.add("show");
 }
+function fecharModal(){ $("modal").classList.remove("show"); }
 
-function fecharModal(){
-  $("modal").classList.remove("show");
+/* =========================
+   PDF PREMIUM (AQUI É O UPGRADE)
+   - fonte 12
+   - borda completa, cantos arredondados
+   - header com logo + dados
+   - texto centralizado e organizado
+========================= */
+
+function logoHTML(){
+  return `
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:8px;border:1px solid rgba(30,136,229,.35);border-radius:16px;padding:10px 14px;background:#f4f9ff;">
+      <div style="width:54px;height:54px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:#E3F2FD;border:1px solid rgba(30,136,229,.35);color:#1E88E5;font-weight:900;font-size:28px;">A</div>
+      <div style="color:#1E88E5;font-weight:900;font-size:18px;letter-spacing:1px;">NDY</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:18px;font-weight:900;color:#1E88E5;line-height:1;">ANDY</div>
+      <div style="font-size:12px;color:#607D8B;">Assistente de Prática Clínica Integrada</div>
+    </div>
+  </div>`;
 }
 
-// ---------- PDF (via impressão) ----------
-function preceptorHeaderHTML(){
+function boxHTML(title, body){
+  return `
+  <div style="border:1px solid #cfd8dc;border-radius:18px;padding:12px 14px;margin-top:10px;">
+    <div style="text-align:center;font-weight:900;color:#1E88E5;margin-bottom:8px;">${esc(title)}</div>
+    <div style="font-size:12px;line-height:1.35;">${body}</div>
+  </div>`;
+}
+
+function headerPDF(){
   const p = state.preceptor;
   return `
-  <div style="border-bottom:4px solid #1E88E5;padding-bottom:10px;margin-bottom:14px;">
-    <div style="font-size:18px;font-weight:950;color:#1E88E5;">ANDY PRO</div>
-    <div style="color:#607D8B;font-size:12px;">Relatório institucional — Clínica Integrada</div>
-  </div>
-
-  <div style="border:1px solid #cfd8dc;border-left:6px solid #1E88E5;border-radius:14px;padding:12px;margin-bottom:12px;">
-    <div><b>Preceptor:</b> ${esc(p.nome || "—")} &nbsp; | &nbsp; <b>Tel:</b> ${esc(p.tel || "—")}</div>
-    <div><b>Disciplina:</b> ${esc(p.disc || "—")} &nbsp; | &nbsp; <b>Local:</b> ${esc(p.local || "—")}</div>
-    <div><b>Data:</b> ${esc(diaKey())} &nbsp; | &nbsp; <b>Grupo:</b> ${esc(p.grupo || "—")}</div>
-  </div>`;
+    ${logoHTML()}
+    <div style="border:1px solid #cfd8dc;border-radius:18px;padding:12px 14px;">
+      <div style="text-align:center;font-size:12px;">
+        <b>Preceptor:</b> ${esc(p.nome||"—")} &nbsp; | &nbsp;
+        <b>Tel:</b> ${esc(p.tel||"—")} &nbsp; | &nbsp;
+        <b>Data:</b> ${esc(diaKey())}
+      </div>
+      <div style="text-align:center;font-size:12px;margin-top:6px;">
+        <b>Disciplina:</b> ${esc(p.disc||"—")} &nbsp; | &nbsp;
+        <b>Local:</b> ${esc(p.local||"—")} &nbsp; | &nbsp;
+        <b>Grupo:</b> ${esc(p.grupo||"—")}
+      </div>
+    </div>
+  `;
 }
 
-function casoHTML(){
+function casoPDFHTML(){
   const c = getCaso();
-  if (!c.qp && !c.hda && !c.achados && !c.hipoteses && !c.conduta) return "";
-  return `
-  <div style="border:1px solid #cfd8dc;border-radius:14px;padding:12px;margin-top:12px;">
-    <h3 style="margin:0 0 10px;color:#1E88E5;">Caso clínico do dia (anonimizado)</h3>
-    <div><b>Queixa principal:</b><br>${esc(c.qp||"—").replace(/\n/g,"<br>")}</div>
-    <div style="margin-top:8px;"><b>História / contexto:</b><br>${esc(c.hda||"—").replace(/\n/g,"<br>")}</div>
-    <div style="margin-top:8px;"><b>Achados relevantes:</b><br>${esc(c.achados||"—").replace(/\n/g,"<br>")}</div>
-    <div style="margin-top:8px;"><b>Hipóteses:</b><br>${esc(c.hipoteses||"—").replace(/\n/g,"<br>")}</div>
-    <div style="margin-top:8px;"><b>Conduta + pontos para estudo:</b><br>${esc(c.conduta||"—").replace(/\n/g,"<br>")}</div>
-  </div>`;
+  if(!c.qp && !c.hda && !c.achados && !c.hipoteses && !c.conduta) return "";
+  return boxHTML("Caso clínico do dia (anonimizado)", `
+    <div><b>Queixa principal:</b><br>${nl2br(c.qp)}</div>
+    <div style="margin-top:8px;"><b>História / contexto:</b><br>${nl2br(c.hda)}</div>
+    <div style="margin-top:8px;"><b>Achados relevantes:</b><br>${nl2br(c.achados)}</div>
+    <div style="margin-top:8px;"><b>Hipóteses e diferenciais:</b><br>${nl2br(c.hipoteses)}</div>
+    <div style="margin-top:8px;"><b>Conduta + pontos para estudo:</b><br>${nl2br(c.conduta)}</div>
+  `);
 }
 
 function printHTML(inner){
   const area = $("printArea");
-  area.innerHTML = `<div style="font-family:Arial,Helvetica,sans-serif;margin:24px;color:#263238;">${inner}</div>`;
+
+  // força salvar tudo antes do PDF
+  autosaveAlunoSilencioso();
+  salvarCaso();
+  save();
+
+  // CSS do PDF (fonte 12, borda completa, cantos arredondados, centralizações)
+  const css = `
+    <style>
+      @page { size: A4; margin: 12mm; }
+      body{ font-family: Arial,Helvetica,sans-serif; font-size: 12pt; }
+      .page{
+        border: 2px solid #1E88E5;
+        border-radius: 18px;
+        padding: 12px 14px;
+      }
+      .center{ text-align:center; }
+      table{ width:100%; border-collapse:collapse; font-size:12pt; }
+      th, td{ border:1px solid #cfd8dc; padding:8px; vertical-align:top; }
+      th{ background:#E3F2FD; color:#1E88E5; font-weight:900; }
+      .sign{ display:flex; gap:12px; margin-top:16px; }
+      .sign > div{ flex:1; border-top:1px solid #b0bec5; padding-top:8px; text-align:center; }
+    </style>
+  `;
+
+  area.innerHTML = `${css}<div class="page">${inner}</div>`;
+  void area.offsetHeight;
   window.print();
-  area.innerHTML = "";
+  setTimeout(()=>{ area.innerHTML=""; }, 1600);
 }
 
 function pdfDia(){
   ensureDia();
+
   const linhas = state.alunos.map(a=>{
-    const r = getReg(a.id);
-    const sc = score(r.notas);
-    const precisaRep = (r.presenca === "Falta") || (r.reposicao === "Sim");
+    const r=getReg(a.id);
+    const sc=score(r.notas);
+    const precisa = (r.presenca==="Falta") || (r.reposicao==="Sim");
     return `
-    <tr>
-      <td style="border:1px solid #cfd8dc;padding:8px;text-align:left;">
-        <b>${esc(a.nome)}</b><br>
-        <span style="color:#607D8B;font-size:12px">Mat: ${esc(a.mat||"—")}</span>
-      </td>
-      <td style="border:1px solid #cfd8dc;padding:8px;">${esc(r.presenca)}</td>
-      ${CRITS.map(c=>{
-        const v = r.notas[c.key];
-        return `<td style="border:1px solid #cfd8dc;padding:8px;">${(v===null||v===undefined)?"—":v}</td>`;
-      }).join("")}
-      <td style="border:1px solid #cfd8dc;padding:8px;"><b>${sc.nota10==null?"—":esc(String(sc.nota10))}</b></td>
-      <td style="border:1px solid #cfd8dc;padding:8px;text-align:left;">${esc(r.obs||"")}</td>
-      <td style="border:1px solid #cfd8dc;padding:8px;">${precisaRep ? esc(r.repStatus||"pendente") : "—"}</td>
-      <td style="border:1px solid #cfd8dc;padding:8px;">${precisaRep ? esc(r.repData||"—") : "—"}</td>
-    </tr>`;
+      <tr>
+        <td><b>${esc(a.nome)}</b><br>Mat: ${esc(a.mat||"—")}<br>Tel: ${esc(a.tel||"—")}</td>
+        <td class="center">${esc(r.presenca)}</td>
+        ${CRITS.map(c=>{
+          const v=r.notas[c.key];
+          return `<td class="center">${(v==null)?"—":v}</td>`;
+        }).join("")}
+        <td class="center"><b>${sc.nota10==null?"—":esc(String(sc.nota10))}</b></td>
+        <td>${esc(r.obs||"")}</td>
+        <td class="center">${precisa ? esc(r.repStatus||"pendente") : "—"}</td>
+        <td class="center">${precisa ? esc(r.repData||"—") : "—"}</td>
+      </tr>
+    `;
   }).join("");
 
+  const tabela = `
+    <div style="margin-top:10px;text-align:center;font-weight:900;color:#1E88E5;">Relatório do Dia</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Aluno</th>
+          <th>Presença</th>
+          ${CRITS.map(c=>`<th>${esc(c.label)}</th>`).join("")}
+          <th>Nota</th>
+          <th>Observações</th>
+          <th>Reposição</th>
+          <th>Prevista</th>
+        </tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+    </table>
+  `;
+
   const html = `
-    ${preceptorHeaderHTML()}
-    <div style="border:1px solid #cfd8dc;border-radius:14px;padding:12px;">
-      <h2 style="margin:0 0 10px;color:#1E88E5;">Relatório do Dia</h2>
-
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead>
-          <tr style="background:#E3F2FD;">
-            <th style="border:1px solid #cfd8dc;padding:8px;text-align:left;">Aluno</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Presença</th>
-            ${CRITS.map(c=>`<th style="border:1px solid #cfd8dc;padding:8px;">${esc(c.label)}</th>`).join("")}
-            <th style="border:1px solid #cfd8dc;padding:8px;">Nota</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;text-align:left;">Obs</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Reposição</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Prevista</th>
-          </tr>
-        </thead>
-        <tbody>${linhas}</tbody>
-      </table>
-    </div>
-
-    ${casoHTML()}
-
-    <div style="margin-top:16px; display:flex; gap:12px;">
-      <div style="flex:1;border-top:1px solid #b0bec5;padding-top:8px;text-align:center;">Assinatura do Preceptor</div>
-      <div style="flex:1;border-top:1px solid #b0bec5;padding-top:8px;text-align:center;">Ciência (Turma)</div>
+    ${headerPDF()}
+    ${boxHTML("Resumo do dia", `
+      <div class="center">Total de alunos: <b>${state.alunos.length}</b></div>
+      <div class="center">Gerado pelo ANDY • ${esc(new Date().toLocaleString())}</div>
+    `)}
+    ${boxHTML("Tabela de avaliação", tabela)}
+    ${casoPDFHTML()}
+    <div class="sign">
+      <div>Assinatura do Preceptor</div>
+      <div>Ciência (Turma)</div>
     </div>
   `;
+
   printHTML(html);
 }
 
 function pdfAluno(){
   if(!state.selecionado) return alert("Selecione um aluno.");
+  ensureDia();
+
   const a = state.alunos.find(x=>x.id===state.selecionado);
   const r = getReg(state.selecionado);
   const sc = score(r.notas);
-  const precisaRep = (r.presenca === "Falta") || (r.reposicao === "Sim");
+  const precisa = (r.presenca==="Falta") || (r.reposicao==="Sim");
+
+  const notasTabela = `
+    <table>
+      <thead><tr><th>Critério</th><th>Nota</th></tr></thead>
+      <tbody>
+        ${CRITS.map(c=>`<tr><td>${esc(c.label)}</td><td class="center">${(r.notas[c.key]==null)?"—":r.notas[c.key]}</td></tr>`).join("")}
+        <tr><td><b>Nota sugerida (0–10)</b></td><td class="center"><b>${sc.nota10==null?"—":esc(String(sc.nota10))}</b></td></tr>
+      </tbody>
+    </table>
+  `;
 
   const html = `
-    ${preceptorHeaderHTML()}
-
-    <div style="border:1px solid #cfd8dc;border-left:6px solid #1E88E5;border-radius:14px;padding:12px;">
-      <h2 style="margin:0 0 10px;color:#1E88E5;">Relatório do Aluno</h2>
-      <div><b>Aluno:</b> ${esc(a?.nome||"—")}</div>
-      <div><b>Matrícula:</b> ${esc(a?.mat||"—")} &nbsp; | &nbsp; <b>Telefone:</b> ${esc(a?.tel||"—")}</div>
-      <div style="margin-top:10px;"><b>Presença:</b> ${esc(r.presenca)} &nbsp; | &nbsp; <b>Reposição:</b> ${precisaRep ? esc(r.repStatus||"pendente") : "—"}</div>
-      <div><b>Data prevista:</b> ${precisaRep ? esc(r.repData||"—") : "—"}</div>
-      <div style="margin-top:10px;"><b>Obs curta:</b> ${esc(r.obs||"—")}</div>
-    </div>
-
-    <div style="border:1px solid #cfd8dc;border-radius:14px;padding:12px;margin-top:12px;">
-      <h3 style="margin:0 0 10px;color:#1E88E5;">Notas</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead>
-          <tr style="background:#E3F2FD;">
-            <th style="border:1px solid #cfd8dc;padding:8px;text-align:left;">Critério</th>
-            <th style="border:1px solid #cfd8dc;padding:8px;">Nota</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${CRITS.map(c=>`
-            <tr>
-              <td style="border:1px solid #cfd8dc;padding:8px;text-align:left;">${esc(c.label)}</td>
-              <td style="border:1px solid #cfd8dc;padding:8px;">${(r.notas[c.key]===null||r.notas[c.key]===undefined)?"—":r.notas[c.key]}</td>
-            </tr>
-          `).join("")}
-          <tr>
-            <td style="border:1px solid #cfd8dc;padding:8px;text-align:left;"><b>Nota sugerida (0–10)</b></td>
-            <td style="border:1px solid #cfd8dc;padding:8px;"><b>${sc.nota10==null?"—":esc(String(sc.nota10))}</b></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div style="border:1px solid #cfd8dc;border-radius:14px;padding:12px;margin-top:12px;">
-      <h3 style="margin:0 0 10px;color:#1E88E5;">Feedback</h3>
-      <div><b>Pontos fortes:</b><br>${esc(r.feedback?.fortes||"—").replace(/\n/g,"<br>")}</div>
-      <div style="margin-top:8px;"><b>A melhorar:</b><br>${esc(r.feedback?.melhorar||"—").replace(/\n/g,"<br>")}</div>
-      <div style="margin-top:8px;"><b>O que estudar / ação prática:</b><br>${esc(r.feedback?.estudar||"—").replace(/\n/g,"<br>")}</div>
-      <div style="margin-top:8px;"><b>Mensagem:</b><br>${esc(r.feedback?.msg||"—").replace(/\n/g,"<br>")}</div>
-    </div>
-
-    ${casoHTML()}
-
-    <div style="margin-top:16px; display:flex; gap:12px;">
-      <div style="flex:1;border-top:1px solid #b0bec5;padding-top:8px;text-align:center;">Assinatura do Preceptor</div>
-      <div style="flex:1;border-top:1px solid #b0bec5;padding-top:8px;text-align:center;">Ciência do Aluno</div>
+    ${headerPDF()}
+    ${boxHTML("Identificação do aluno", `
+      <div class="center"><b>${esc(a?.nome||"—")}</b></div>
+      <div class="center">Matrícula: ${esc(a?.mat||"—")} • Telefone: ${esc(a?.tel||"—")}</div>
+      <div class="center" style="margin-top:6px;">
+        Presença: <b>${esc(r.presenca)}</b> • Reposição: <b>${precisa ? esc(r.repStatus||"pendente") : "—"}</b> • Prevista: <b>${precisa ? esc(r.repData||"—") : "—"}</b>
+      </div>
+      <div style="margin-top:8px;"><b>Observação curta:</b><br>${nl2br(r.obs)}</div>
+    `)}
+    ${boxHTML("Notas", notasTabela)}
+    ${boxHTML("Feedback", `
+      <div><b>Pontos fortes:</b><br>${nl2br(r.feedback?.fortes)}</div>
+      <div style="margin-top:8px;"><b>Pontos a melhorar:</b><br>${nl2br(r.feedback?.melhorar)}</div>
+      <div style="margin-top:8px;"><b>O que estudar / ação prática:</b><br>${nl2br(r.feedback?.estudar)}</div>
+      <div style="margin-top:8px;"><b>Mensagem encorajadora:</b><br>${nl2br(r.feedback?.msg)}</div>
+    `)}
+    ${casoPDFHTML()}
+    <div class="sign">
+      <div>Assinatura do Preceptor</div>
+      <div>Ciência do Aluno</div>
     </div>
   `;
   printHTML(html);
 }
 
-// ---------- BOTÕES / EVENTOS ----------
+/* ---------- modal + botões ---------- */
 function wire(){
-  // set data
   $("dia").value = $("dia").value || hojeISO();
 
-  $("btnHoje").onclick = ()=>{ $("dia").value = hojeISO(); renderAll(); };
+  $("btnHoje").onclick = ()=>{ $("dia").value=hojeISO(); renderAll(); };
   $("btnPDFDia").onclick = ()=>pdfDia();
   $("btnPDFDia2").onclick = ()=>pdfDia();
   $("btnPDFAluno").onclick = ()=>pdfAluno();
   $("btnPDFAluno2").onclick = ()=>pdfAluno();
 
-  $("btnSalvarTudo").onclick = ()=>{ save(); alert("Salvo ✅"); };
-  $("btnSalvarTudo2").onclick = ()=>{ save(); alert("Salvo ✅"); };
+  $("btnSalvarTudo").onclick = ()=>{ autosaveAlunoSilencioso(); salvarCaso(); save(); alert("Salvo ✅"); };
+  $("btnSalvarTudo2").onclick = ()=>{ autosaveAlunoSilencioso(); salvarCaso(); save(); alert("Salvo ✅"); };
 
   $("btnNovoAluno").onclick = ()=>novoAluno();
   $("btnFixar6").onclick = ()=>preencher6();
   $("btnLimparDia").onclick = ()=>limparDia();
 
   $("btnSalvarAluno").onclick = ()=>salvarAluno();
-  $("btnVerHistorico").onclick = ()=>abrirHistorico();
 
+  $("btnVerHistorico").onclick = ()=>abrirHistorico();
   $("btnFecharModal").onclick = ()=>fecharModal();
   $("modal").onclick = (e)=>{ if(e.target.id==="modal") fecharModal(); };
 
@@ -781,26 +722,19 @@ function wire(){
 
   $("btnLimparCaso").onclick = ()=>limparCaso();
 
-  // mudanças de preceptor/data
-  ["prof_nome","prof_tel","prof_disc","prof_local","prof_grupo"].forEach(id=>{
-    $(id).addEventListener("input", ()=>{ save(); });
-  });
-
+  ["prof_nome","prof_tel","prof_disc","prof_local","prof_grupo"].forEach(id=>$(id).addEventListener("input", ()=>save()));
   $("dia").addEventListener("change", ()=>renderAll());
 
-  // autosave do cartão
-  ["al_nome","al_mat","al_tel","al_presenca","al_reposicao","al_repdata","al_obs","fb_fortes","fb_melhorar","fb_estudar","fb_msg"].forEach(id=>{
-    $(id).addEventListener("input", ()=>autosaveAlunoSilencioso());
-    $(id).addEventListener("change", ()=>autosaveAlunoSilencioso());
-  });
+  ["al_nome","al_mat","al_tel","al_presenca","al_reposicao","al_repdata","al_obs","fb_fortes","fb_melhorar","fb_estudar","fb_msg"]
+    .forEach(id=>{
+      $(id).addEventListener("input", ()=>autosaveAlunoSilencioso());
+      $(id).addEventListener("change", ()=>autosaveAlunoSilencioso());
+    });
 
-  // autosave do caso
-  ["caso_qp","caso_hda","caso_achados","caso_hipoteses","caso_conduta"].forEach(id=>{
-    $(id).addEventListener("input", ()=>salvarCaso());
-  });
+  ["caso_qp","caso_hda","caso_achados","caso_hipoteses","caso_conduta"]
+    .forEach(id=>$(id).addEventListener("input", ()=>salvarCaso()));
 
-  // service worker
-  if ("serviceWorker" in navigator){
+  if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
   }
 }
