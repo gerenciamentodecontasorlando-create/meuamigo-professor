@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ANDY PRO – Clínica Integrada</title>
+<meta name="theme-color" content="#1E88E5" />
+<style>
+:root{ --azul:#1E88E5; --azul-claro:#E3F2FD; --cinza:#455A64; --borda:#cfd8dc; --muted:#607D8B; }
+*{box-sizing:border-box;}
+body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:#f9fbfd; color:var(--cinza); }
+header{ background:#fff; border-bottom:3px solid var(--azul); padding:14px 16px; display:flex; gap:12px; align-items:center; justify-content:space-between; }
+.brand{ display:flex; gap:10px; align-items:center; }
+.brand .logo{ width:44px; height:44px; border-radius:12px; background:var(--azul-claro); display:flex; align-items:center; justify-content:center; color:var(--azul); font-weight:900; }
+.brand h1{ margin:0; color:var(--azul); font-size:18px; }
+.brand small{ color:var(--muted); display:block; margin-top:2px; }
+
+header .topbtns{ display:flex; gap:8px; flex-wrap:wrap; }
+.btn{ border:none; background:var(--azul); color:#fff; padding:10px 12px; border-radius:10px; font-weight:800; cursor:pointer; }
+.btn.ghost{ background:#fff; color:var(--azul); border:1px solid rgba(30,136,229,.35); }
+.btn.small{ padding:8px 10px; border-radius:10px; font-size:12px; }
+.btn:active{ transform:translateY(1px); }
+
+.layout{ display:grid; grid-template-columns:360px 1fr; gap:12px; padding:12px; max-width:1400px; margin:auto; }
+.card{ background:#fff; border:1px solid var(--borda); border-left:6px solid var(--azul); border-radius:14px; padding:14px; }
+.card h2{ margin:0 0 10px; color:var(--azul); font-size:16px; }
+label{ font-weight:800; color:var(--muted); font-size:12px; display:block; margin-top:8px; }
+input, select, textarea{
+  width:100%; padding:10px 10px; margin-top:6px;
+  border:1px solid #b0bec5; border-radius:12px; outline:none;
+}
+textarea{ min-height:78px; resize:vertical; }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.grid3{ display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; }
+.divider{ height:1px; background:rgba(207,216,220,.8); margin:14px 0; }
+
+.studentList button{
+  width:100%; text-align:left; padding:10px; margin-top:8px;
+  border-radius:12px; border:1px solid #b0bec5; background:#fff; cursor:pointer;
+}
+.studentList button.active{ background:var(--azul); color:#fff; border-color:var(--azul); }
+.studentList .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+.pill{ display:inline-block; background:rgba(30,136,229,.10); color:var(--azul);
+  padding:6px 10px; border-radius:999px; font-weight:900; font-size:12px; }
+
+.quickWrap{ overflow:auto; border:1px solid var(--borda); border-radius:14px; }
+table{ width:100%; border-collapse:collapse; min-width:980px; background:#fff; }
+th,td{ border-bottom:1px solid rgba(207,216,220,.9); border-right:1px solid rgba(207,216,220,.55); padding:10px; text-align:center; font-size:13px; }
+th{ background:var(--azul-claro); color:var(--azul); font-weight:900; position:sticky; top:0; z-index:1; }
+td:first-child{ text-align:left; min-width:240px; }
+.qcell{ cursor:pointer; user-select:none; font-weight:900; border-radius:10px; }
+.qv{ color:#90A4AE; }
+.q0{ background:#ffebee; color:#c62828; }
+.q3{ background:#fff8e1; color:#ef6c00; }
+.q5{ background:#e8f5e9; color:#2e7d32; }
+
+.rowActions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.hint{ color:var(--muted); font-size:12px; line-height:1.35; margin-top:8px; }
+
+.criteria{ display:grid; gap:10px; }
+.crit{ border:1px solid rgba(207,216,220,.9); border-radius:14px; padding:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.crit b{ font-size:13px; }
+.critBtns{ display:flex; gap:8px; }
+.pbtn{ min-width:44px; padding:8px 10px; border-radius:12px; border:1px solid rgba(30,136,229,.45); background:#fff; color:var(--azul); font-weight:950; cursor:pointer; }
+.pbtn.active{ background:var(--azul); color:#fff; border-color:var(--azul); }
+
+.scoreBox{ border:1px solid rgba(207,216,220,.9); border-radius:14px; padding:10px 12px; min-width:170px; }
+.scoreBox .lab{ font-size:12px; color:var(--muted); font-weight:800; }
+.scoreBox .val{ font-size:18px; font-weight:950; margin-top:4px; color:#243238; }
+
+.repList{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.repItem{ border:1px solid rgba(207,216,220,.9); border-radius:14px; padding:10px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.repItem .meta{ font-size:12px; color:var(--muted); margin-top:3px; }
+.repItem .tag{ font-weight:900; font-size:12px; padding:6px 10px; border-radius:999px; }
+.tag.pendente{ background:#fff8e1; color:#ef6c00; }
+.tag.feita{ background:#e8f5e9; color:#2e7d32; }
+
+.printOnly{ display:none; }
+@media (max-width: 980px){
+  .layout{ grid-template-columns:1fr; }
+  table{ min-width:980px; }
+}
+@media print{
+  header, .layout, .noPrint{ display:none !important; }
+  .printOnly{ display:block !important; }
+  body{ background:#fff; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">A</div>
+    <div>
+      <h1>ANDY PRO</h1>
+      <small>Clínica Integrada • notas instantâneas • feedback • reposições • PDFs</small>
+    </div>
+  </div>
+  <div class="topbtns">
+    <button class="btn ghost" onclick="setHoje()">Hoje</button>
+    <button class="btn ghost" onclick="pdfDia()">PDF do Dia</button>
+    <button class="btn ghost" onclick="pdfAluno()">PDF do Aluno</button>
+    <button class="btn" onclick="salvarLote()">Salvar Dia (todos)</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- COLUNA ESQUERDA -->
+  <div>
+    <div class="card">
+      <h2>Preceptor</h2>
+      <div class="grid2">
+        <div>
+          <label>Nome</label>
+          <input id="profNome" placeholder="Nome do preceptor" />
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input id="profTel" placeholder="(00) 00000-0000" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Disciplina</label>
+          <input id="profDisc" value="Clínica Integrada" />
+        </div>
+        <div>
+          <label>Local</label>
+          <input id="local" placeholder="Ambulatório / Sala" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Data</label>
+          <input id="data" type="date" />
+        </div>
+        <div>
+          <label>Grupo</label>
+          <input id="grupo" placeholder="Ex.: G3" />
+        </div>
+      </div>
+      <div class="hint">Autosave ligado. O ANDY guarda tudo offline.</div>
+    </div>
+
+    <div class="card">
+      <h2>Alunos (até 6)</h2>
+      <div class="rowActions">
+        <button class="btn" onclick="novoAluno()">+ Novo aluno</button>
+        <button class="btn ghost" onclick="limparDia()">Limpar grade (não apaga histórico)</button>
+      </div>
+      <div id="studentList" class="studentList"></div>
+      <div class="hint">Clicou no aluno → o cartão abre na direita instantaneamente.</div>
+    </div>
+
+    <div class="card">
+      <h2>Reposições (fila)</h2>
+      <span class="pill">Automático quando Falta / Reposição = Sim</span>
+      <div id="repList" class="repList"></div>
+      <div class="hint">A ideia é o preceptor não esquecer ninguém e nem precisar “planilha”.</div>
+    </div>
+  </div>
+
+  <!-- COLUNA DIREITA -->
+  <div>
+
+    <div class="card">
+      <h2>Modo Rápido (durante o atendimento)</h2>
+      <div class="hint"><span class="pill">Toque na nota: — → 0 → 3 → 5 → —</span></div>
+      <div class="quickWrap" style="margin-top:10px;">
+        <table id="quickTable"></table>
+      </div>
+      <div class="rowActions">
+        <button class="btn" onclick="salvarLote()">Salvar Dia (todos)</button>
+        <button class="btn ghost" onclick="pdfDia()">PDF do Dia</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Cartão do Aluno (clique rápido + feedback sem ferir)</h2>
+      <div class="grid3">
+        <div>
+          <label>Aluno</label>
+          <input id="alunoNome" />
+        </div>
+        <div>
+          <label>Matrícula</label>
+          <input id="alunoMat" />
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input id="alunoTel" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid3">
+        <div>
+          <label>Presença</label>
+          <select id="presenca">
+            <option>Presente</option>
+            <option>Atraso</option>
+            <option>Falta</option>
+          </select>
+        </div>
+        <div>
+          <label>Reposição?</label>
+          <select id="reposicao">
+            <option>Não</option>
+            <option>Sim</option>
+          </select>
+        </div>
+        <div>
+          <label>Data prevista reposição</label>
+          <input id="repData" type="date" />
+        </div>
+      </div>
+
+      <label>Observação curta (rápida e objetiva)</label>
+      <textarea id="obsCurta" placeholder="Ex.: boa anamnese; revisar exame físico..."></textarea>
+
+      <div class="divider"></div>
+
+      <div class="criteria" id="criteria"></div>
+
+      <div class="rowActions">
+        <div class="scoreBox">
+          <div class="lab">Score</div>
+          <div class="val" id="score">—</div>
+        </div>
+        <div class="scoreBox">
+          <div class="lab">Nota sugerida (0–10)</div>
+          <div class="val" id="nota">—</div>
+        </div>
+        <button class="btn" onclick="salvarAluno()">Salvar aluno</button>
+        <button class="btn ghost" onclick="pdfAluno()">PDF do Aluno</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3 style="margin:0;color:var(--azul);font-size:14px;">Feedback orientador (sem humilhar)</h3>
+      <div class="grid2">
+        <div>
+          <label>Pontos fortes</label>
+          <textarea id="fortes" placeholder="O que ele fez bem (real e específico)"></textarea>
+        </div>
+        <div>
+          <label>Pontos a melhorar</label>
+          <textarea id="melhorar" placeholder="O que evoluir (sem ataque pessoal)"></textarea>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Ação prática p/ próxima vez</label>
+          <textarea id="acao" placeholder="Ex.: treinar SOAP, revisar semiologia..."></textarea>
+        </div>
+        <div>
+          <label>Mensagem encorajadora</label>
+          <textarea id="encorajar" placeholder="Ex.: você está evoluindo; próxima prática foca nisso..."></textarea>
+        </div>
+      </div>
+
+      <div class="rowActions">
+        <button class="btn ghost" onclick="gerarFeedback('neutro')">Gerar feedback (neutro)</button>
+        <button class="btn ghost" onclick="gerarFeedback('encorajador')">Gerar feedback (encorajador)</button>
+        <button class="btn ghost" onclick="gerarFeedback('direto')">Gerar feedback (direto)</button>
+      </div>
+
+      <div class="hint">O objetivo é produtividade + respeito. Feedback é guia, não sentença.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ÁREA DE IMPRESSÃO -->
+<div class="printOnly" id="printArea"></div>
+
+<script>
+/* =========================
+   ANDY PRO — OFFLINE
+   ========================= */
+
+const CRITS = [
+  {key:"assiduidade", label:"Assiduidade"},
+  {key:"conhecimento", label:"Conhecimento"},
+  {key:"postura", label:"Postura"},
+  {key:"proatividade", label:"Proatividade"},
+  {key:"socializacao", label:"Socialização"},
+  {key:"expressividade", label:"Expressividade"},
+];
+
+let state = {
+  alunos: [],          // [{id,nome,mat,tel}]
+  dia: {},             // {dateISO: { [alunoId]: registroDia }}
+  reposicoes: {},      // {dateISO: [ {alunoId, status, repData} ] }  (fila por dia, mas mantemos histórico)
+  selecionado: null,   // alunoId
+};
+
+function uid(){ return Math.random().toString(16).slice(2)+Date.now().toString(16); }
+function hojeISO(){
+  const d=new Date(); const tz=d.getTimezoneOffset()*60000;
+  return new Date(d - tz).toISOString().slice(0,10);
+}
+function esc(s){ return (s||"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function load(){
+  const raw = localStorage.getItem("ANDY_PRO");
+  if(raw){
+    try{ state = JSON.parse(raw); }catch(e){}
+  }
+  // defaults
+  if(!state.alunos) state.alunos=[];
+  if(!state.dia) state.dia={};
+  if(!state.reposicoes) state.reposicoes={};
+
+  // data default
+  data.value = (data.value || hojeISO());
+  if(!data.value) data.value = hojeISO();
+
+  // recuperar preceptor
+  const p = JSON.parse(localStorage.getItem("ANDY_PRO_PROF")||"{}");
+  profNome.value = p.profNome || "";
+  profTel.value  = p.profTel || "";
+  profDisc.value = p.profDisc || "Clínica Integrada";
+  local.value    = p.local || "";
+  grupo.value    = p.grupo || "";
+
+  // seleciona primeiro aluno automaticamente
+  if(!state.selecionado && state.alunos.length) state.selecionado = state.alunos[0].id;
+
+  renderAll();
+}
+
+function save(){
+  localStorage.setItem("ANDY_PRO", JSON.stringify(state));
+  localStorage.setItem("ANDY_PRO_PROF", JSON.stringify({
+    profNome: profNome.value,
+    profTel: profTel.value,
+    profDisc: profDisc.value,
+    local: local.value,
+    grupo: grupo.value,
+  }));
+}
+
+function getDiaKey(){ return data.value || hojeISO(); }
+
+function ensureDia(){
+  const k=getDiaKey();
+  if(!state.dia[k]) state.dia[k]={};
+  if(!state.reposicoes[k]) state.reposicoes[k]=[];
+}
+
+function defaultRegistro(){
+  return {
+    presenca:"Presente",
+    reposicao:"Não",
+    repData:"",
+    obsCurta:"",
+    notas: Object.fromEntries(CRITS.map(c=>[c.key,null])),
+    feedback: { fortes:"", melhorar:"", acao:"", encorajar:"" }
+  };
+}
+
+function cycleVal(v){
+  if(v===null || v===undefined) return 0;
+  if(v===0) return 3;
+  if(v===3) return 5;
+  return null;
+}
+
+function scoreFromNotas(notas){
+  const vals = Object.values(notas||{}).filter(v=>typeof v==="number");
+  if(!vals.length) return {sum:null, nota:null};
+  const sum = vals.reduce((a,b)=>a+b,0);
+  const max = CRITS.length*5;
+  const nota = Math.round(((sum/max)*10)*10)/10;
+  return {sum, nota, max};
+}
+
+/* =========================
+   UI RENDER
+   ========================= */
+
+function renderAll(){
+  ensureDia();
+  renderStudentList();
+  renderQuickTable();
+  renderCriteria();
+  renderCardAluno();
+  renderReposicoes();
+  save();
+}
+
+function renderStudentList(){
+  const wrap = document.getElementById("studentList");
+  wrap.innerHTML = "";
+
+  if(!state.alunos.length){
+    wrap.innerHTML = `<div class="hint">Sem alunos ainda. Clique em “+ Novo aluno”.</div>`;
+    return;
+  }
+
+  state.alunos.forEach(a=>{
+    const btn=document.createElement("button");
+    const reg = getReg(a.id);
+    btn.className = (state.selecionado===a.id) ? "active" : "";
+    btn.innerHTML = `<b>${esc(a.nome)}</b>
+      <div class="sub">Mat: ${esc(a.mat||"—")} • Tel: ${esc(a.tel||"—")} • ${esc(reg.presenca||"")}</div>`;
+    btn.onclick = ()=>{
+      state.selecionado = a.id;
+      renderCardAluno();
+      renderStudentList();
+      save();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function getReg(alunoId){
+  ensureDia();
+  const k=getDiaKey();
+  if(!state.dia[k][alunoId]) state.dia[k][alunoId]=defaultRegistro();
+  return state.dia[k][alunoId];
+}
+
+function renderQuickTable(){
+  const tb = document.getElementById("quickTable");
+  if(!state.alunos.length){
+    tb.innerHTML = `<tr><td style="padding:14px;color:${getComputedStyle(document.documentElement).getPropertyValue('--muted')}">Cadastre alunos para usar o modo rápido.</td></tr>`;
+    return;
+  }
+
+  const head = `
+    <tr>
+      <th>Aluno</th>
+      <th>Presença</th>
+      ${CRITS.map(c=>`<th>${esc(c.label)}</th>`).join("")}
+      <th>Obs curta</th>
+      <th>Reposição</th>
+    </tr>`;
+  const rows = state.alunos.map(a=>{
+    const r = getReg(a.id);
+    return `
+      <tr>
+        <td>
+          <b style="cursor:pointer" onclick="selectAluno('${a.id}')">${esc(a.nome)}</b><br/>
+          <span style="color:#607D8B;font-size:12px">Mat: ${esc(a.mat||"—")}</span>
+        </td>
+        <td>
+          <select onchange="setPresenca('${a.id}', this.value)">
+            ${["Presente","Atraso","Falta"].map(p=>`<option ${r.presenca===p?"selected":""}>${p}</option>`).join("")}
+          </select>
+        </td>
+        ${CRITS.map(c=>{
+          const v = r.notas[c.key];
+          const cls = (v===null||v===undefined)?"qv":(v===0?"q0":(v===3?"q3":"q5"));
+          const txt = (v===null||v===undefined)?"—":v;
+          return `<td class="qcell ${cls}" onclick="toggleNota('${a.id}','${c.key}')">${txt}</td>`;
+        }).join("")}
+        <td><input value="${esc(r.obsCurta||"")}" placeholder="ex.: revisar SOAP" oninput="setObs('${a.id}', this.value)"></td>
+        <td>
+          <select onchange="setReposicao('${a.id}', this.value)">
+            <option ${r.reposicao==="Não"?"selected":""}>Não</option>
+            <option ${r.reposicao==="Sim"?"selected":""}>Sim</option>
+          </select>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  tb.innerHTML = head + rows;
+}
+
+function selectAluno(id){
+  state.selecionado=id;
+  renderStudentList();
+  renderCardAluno();
+  save();
+}
+
+function renderCriteria(){
+  const wrap = document.getElementById("criteria");
+  wrap.innerHTML="";
+  const r = state.selecionado ? getReg(state.selecionado) : null;
+
+  CRITS.forEach(c=>{
+    const row=document.createElement("div");
+    row.className="crit";
+    const v = r ? r.notas[c.key] : null;
+    row.innerHTML = `
+      <b>${esc(c.label)}</b>
+      <div class="critBtns">
+        <button class="pbtn ${v===0?"active":""}" onclick="setNotaCard('${c.key}',0)">0</button>
+        <button class="pbtn ${v===3?"active":""}" onclick="setNotaCard('${c.key}',3)">3</button>
+        <button class="pbtn ${v===5?"active":""}" onclick="setNotaCard('${c.key}',5)">5</button>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function renderCardAluno(){
+  if(!state.selecionado){
+    alunoNome.value = alunoMat.value = alunoTel.value = "";
+    return;
+  }
+  const aluno = state.alunos.find(a=>a.id===state.selecionado);
+  const r = getReg(state.selecionado);
+
+  alunoNome.value = aluno?.nome || "";
+  alunoMat.value  = aluno?.mat || "";
+  alunoTel.value  = aluno?.tel || "";
+
+  presenca.value  = r.presenca || "Presente";
+  reposicao.value = r.reposicao || "Não";
+  repData.value   = r.repData || "";
+  obsCurta.value  = r.obsCurta || "";
+
+  fortes.value    = r.feedback?.fortes || "";
+  melhorar.value  = r.feedback?.melhorar || "";
+  acao.value      = r.feedback?.acao || "";
+  encorajar.value = r.feedback?.encorajar || "";
+
+  const {sum, nota, max} = scoreFromNotas(r.notas);
+  score.textContent = (sum===null) ? "—" : `${sum}/${max}`;
+  document.getElementById("nota").textContent  = (nota===null) ? "—" : `${nota}`;
+
+  renderCriteria();
+  renderQuickTable();
+  renderReposicoes();
+  save();
+}
+
+function renderReposicoes(){
+  ensureDia();
+  const k=getDiaKey();
+
+  // recalcula fila baseada nos registros do dia (robusto)
+  const fila = [];
+  state.alunos.forEach(a=>{
+    const r=getReg(a.id);
+    if(r.presenca==="Falta" || r.reposicao==="Sim"){
+      fila.push({
+        alunoId:a.id,
+        nome:a.nome,
+        mat:a.mat||"",
+        repData:r.repData||"",
+        status:(r._repStatus || "pendente")
+      });
+    }
+  });
+
+  state.reposicoes[k] = fila;
+
+  const wrap = document.getElementById("repList");
+  wrap.innerHTML = "";
+
+  if(!fila.length){
+    wrap.innerHTML = `<div class="hint">Sem reposições pendentes no dia selecionado ✅</div>`;
+    return;
+  }
+
+  fila.forEach(item=>{
+    const div=document.createElement("div");
+    div.className="repItem";
+    div.innerHTML = `
+      <div>
+        <b>${esc(item.nome)}</b>
+        <div class="meta">Mat: ${esc(item.mat||"—")} • Prev: ${esc(item.repData||"—")}</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="tag ${item.status==='feita'?'feita':'pendente'}">${item.status==='feita'?'Feita':'Pendente'}</span>
+        <button class="btn small ghost" onclick="toggleRepStatus('${item.alunoId}')">Alternar</button>
+      </div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function toggleRepStatus(alunoId){
+  const r=getReg(alunoId);
+  r._repStatus = (r._repStatus==="feita") ? "pendente" : "feita";
+  renderReposicoes();
+  save();
+}
+
+/* =========================
+   AÇÕES RÁPIDAS
+   ========================= */
+
+function setHoje(){
+  data.value = hojeISO();
+  renderAll();
+}
+
+function novoAluno(){
+  if(state.alunos.length>=6) return alert("Máximo de 6 alunos por grupo.");
+  const a={id:uid(), nome:`Aluno ${state.alunos.length+1}`, mat:"", tel:""};
+  state.alunos.push(a);
+  ensureDia();
+  getReg(a.id);
+  if(!state.selecionado) state.selecionado=a.id;
+  renderAll();
+}
+
+function setPresenca(alunoId, val){
+  const r=getReg(alunoId);
+  r.presenca=val;
+  // se falta, já marca reposição sim
+  if(val==="Falta") r.reposicao="Sim";
+  renderAll();
+}
+function setReposicao(alunoId, val){
+  const r=getReg(alunoId);
+  r.reposicao=val;
+  renderAll();
+}
+function setObs(alunoId, val){
+  const r=getReg(alunoId);
+  r.obsCurta=val;
+  save();
+}
+function toggleNota(alunoId, key){
+  const r=getReg(alunoId);
+  r.notas[key]=cycleVal(r.notas[key]);
+  if(state.selecionado===alunoId) renderCardAluno();
+  else { renderQuickTable(); save(); }
+}
+
+function setNotaCard(key, val){
+  const r=getReg(state.selecionado);
+  r.notas[key]=val;
+  renderCardAluno();
+}
+
+function salvarAluno(){
+  if(!state.selecionado) return;
+  const aluno = state.alunos.find(a=>a.id===state.selecionado);
+  aluno.nome = alunoNome.value || aluno.nome;
+  aluno.mat  = alunoMat.value || "";
+  aluno.tel  = alunoTel.value || "";
+
+  const r=getReg(state.selecionado);
+  r.presenca = presenca.value;
+  r.reposicao = reposicao.value;
+  r.repData = repData.value || "";
+  r.obsCurta = obsCurta.value || "";
+  r.feedback = {
+    fortes: fortes.value || "",
+    melhorar: melhorar.value || "",
+    acao: acao.value || "",
+    encorajar: encorajar.value || ""
+  };
+
+  // regra de fila
+  if(r.presenca==="Falta") r.reposicao="Sim";
+
+  renderAll();
+  alert("Salvo ✅");
+}
+
+function salvarLote(){
+  // aqui o “lote” basicamente garante que tudo esteja consistente + fila atualizada
+  renderAll();
+  alert("Dia salvo (todos) ✅");
+}
+
+function limparDia(){
+  if(!confirm("Limpar a grade do dia (não apaga histórico de outros dias)?")) return;
+  const k=getDiaKey();
+  state.dia[k]={};
+  state.alunos.forEach(a=> state.dia[k][a.id]=defaultRegistro() );
+  renderAll();
+}
+
+/* =========================
+   FEEDBACK “SEM FERIR”
+   ========================= */
+
+function gerarFeedback(modo){
+  const r=getReg(state.selecionado);
+  const nome = (alunoNome.value || "O aluno");
+
+  const baseFortes = (fortes.value||"").trim();
+  const baseMelhorar = (melhorar.value||"").trim();
+  const baseAcao = (acao.value||"").trim();
+
+  let intro="", fechamento="";
+  if(modo==="encorajador"){
+    intro = `Você está evoluindo bem. Hoje eu notei pontos importantes no seu desempenho.`;
+    fechamento = `Continua firme — com foco no próximo passo, tua curva de evolução fica bem rápida.`;
+  } else if(modo==="direto"){
+    intro = `Feedback objetivo da prática de hoje:`;
+    fechamento = `Na próxima prática, o foco é executar isso com consistência.`;
+  } else {
+    intro = `Feedback do dia (orientador):`;
+    fechamento = `A ideia é te ajudar a subir de nível com segurança e constância.`;
+  }
+
+  const msg =
+`${intro}
+
+✅ Pontos fortes:
+- ${baseFortes || "—"}
+
+🔧 Pontos a melhorar:
+- ${baseMelhorar || "—"}
+
+🎯 Ação prática para próxima vez:
+- ${baseAcao || "—"}
+
+🤝 Mensagem:
+${fechamento}`;
+
+  encorajar.value = msg;
+  r.feedback = { fortes: fortes.value||"", melhorar: melhorar.value||"", acao: acao.value||"", encorajar: encorajar.value||"" };
+  save();
+}
+
+/* =========================
+   PDFS (impressão confiável)
+   ========================= */
+
+function buildHeaderHTML(){
+  return `
+  <div style="border-bottom:3px solid #1E88E5;padding-bottom:10px;margin-bottom:14px;">
+    <div style="font-size:18px;font-weight:900;color:#1E88E5;">ANDY PRO</div>
+    <div style="color:#607D8B;font-size:12px;">Relatórios • Clínica Integrada</div>
+  </div>
+  <div style="border:1px solid #cfd8dc;border-left:6px solid #1E88E5;border-radius:12px;padding:12px;margin-bottom:12px;">
+    <div><b>Preceptor:</b> ${esc(profNome.value||"—")} &nbsp; | &nbsp; <b>Tel:</b> ${esc(profTel.value||"—")}</div>
+    <div><b>Disciplina:</b> ${esc(profDisc.value||"—")} &nbsp; | &nbsp; <b>Local:</b> ${esc(local.value||"—")}</div>
+    <div><b>Data:</b> ${esc(getDiaKey())} &nbsp; | &nbsp; <b>Grupo:</b> ${esc(grupo.value||"—")}</div>
+  </div>`;
+}
+
+function pdfDia(){
+  ensureDia();
+  const k=getDiaKey();
+
+  const linhas = state.alunos.map(a=>{
+    const r=getReg(a.id);
+    const sc = scoreFromNotas(r.notas);
+    return `
+    <tr>
+      <td style="text-align:left"><b>${esc(a.nome)}</b><br><span style="color:#607D8B;font-size:12px">Mat: ${esc(a.mat||"—")}</span></td>
+      <td>${esc(r.presenca||"—")}</td>
+      ${CRITS.map(c=>{
+        const v=r.notas[c.key]; return `<td>${(v===null||v===undefined)?"—":v}</td>`;
+      }).join("")}
+      <td>${sc.nota===null?"—":esc(String(sc.nota))}</td>
+      <td style="text-align:left">${esc(r.obsCurta||"")}</td>
+      <td>${esc((r.presenca==="Falta"||r.reposicao==="Sim") ? (r._repStatus||"pendente") : "—")}</td>
+      <td>${esc(r.repData||"—")}</td>
+    </tr>`;
+  }).join("");
+
+  const html = `
+  ${buildHeaderHTML()}
+  <div style="border:1px solid #cfd8dc;border-radius:12px;padding:12px;">
+    <h2 style="margin:0 0 10px;color:#1E88E5;">Relatório do Dia</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#E3F2FD;">
+          <th style="border:1px solid #cfd8dc;padding:8px;text-align:left;">Aluno</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Presença</th>
+          ${CRITS.map(c=>`<th style="border:1px solid #cfd8dc;padding:8px;">${esc(c.label)}</th>`).join("")}
+          <th style="border:1px solid #cfd8dc;padding:8px;">Nota</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;text-align:left;">Obs</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Reposição</th>
+          <th style="border:1px solid #cfd8dc;padding:8px;">Prevista</th>
+        </tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:16px; display:flex; gap:12px;">
+    <div style="flex:1;border-top:1px solid #b0bec5;padding-top:8px;text-align:center;">Assinatura do Preceptor</div>
+    <div style="flex:1;border-top:1px solid #b0bec5;padding-top:8px;text-align:center;">Ciência (Turma)</div>
+  </div>
+  `;
+
+  printHTML(html);
+}
+
+function pdfAluno(){
+  if(!state.selecionado) return alert("Selecione um aluno.");
+  ensureDia();
+  const aluno = state.alunos.find(a=>a.id===state.selecionado);
+  const r = getReg(state.selecionado);
+  const sc = scoreFromNotas(r.notas);
+
+  const html = `
+  ${buildHeaderHTML()}
+  <div style="border:1px solid #cfd8dc;border-left:6px solid #1E88E5;border-radius:12px;padding:12px;">
+    <h2 style="margin:0 0 10px;color:#1E88E5;">Relatório do Aluno</h2>
+    <div><b>Aluno:</b> ${esc(aluno.nome)}</div>
+    <div><b>Matrícula:</b> ${esc(aluno.mat||"—")} &nbsp; | &nbsp; <b>Telefone:</b> ${esc(aluno.tel||"—")}</div>
+    <div style="margin-top:10px;"><b>Presença:</b> ${esc(r.presenca||"—")} &nbsp; | &nbsp; <b>Reposição:</b> ${esc((r.presenca==="Falta"||r.reposicao==="Sim")?(r._repStatus||"pendente"):"—")}</div>
+    <div><b>Data prevista:</b> ${esc(r.repData||"—")}</div>
+  </div>
+
+  <div style="border:1px solid #cfd8dc;border-radius:12px;padding:12px;margin-top:12px;">
+    <h3 style="margin:0 0 10px;color:#1E88E5;">Notas</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:#E3F2FD;">
+        <th style="border:1px solid #cfd8dc;padding:8px;text-align:left;">Critério</th>
+        <th style="border:1px solid #cfd8dc;padding:8px;">Nota</th>
+      </tr></thead>
+      <tbody>
+        ${CRITS.map(c=>`<tr>
+          <td style="border:1px solid #cfd8dc;padding:8px;text-align:left;">${esc(c.label)}</td>
+          <td style="border:1px solid #cfd8dc;padding:8px;">${(r.notas[c.key]===null||r.notas[c.key]===undefined)?"—":r.notas[c.key]}</td>
+        </tr>`).join("")}
+        <tr>
+          <td style="border:1px solid #cfd8dc;padding:8px;text-align:left;"><b>Nota sugerida (0–10)</b></td>
+          <td style="border:1px solid #cfd8dc;padding:8px;"><b>${sc.nota===null?"—":esc(String(sc.nota))}</b></
