@@ -1,7 +1,6 @@
 :root{
   --azul:#1E88E5;
   --azul-claro:#E3F2FD;
-  --cinza:#455A64;
   --borda:#cfd8dc;
   --muted:#607D8B;
 }
@@ -25,18 +24,30 @@ body{
   flex-wrap:wrap;
 }
 
-.brand{display:flex; align-items:center; gap:10px;}
+.brand{display:flex; align-items:center; gap:12px;}
+.logoBadge{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px;
+  border-radius:16px;
+  border:1px solid rgba(30,136,229,.28);
+  background:linear-gradient(180deg, #ffffff, #f4f9ff);
+}
 .logoA{
   width:44px; height:44px;
   border-radius:14px;
   display:flex; align-items:center; justify-content:center;
   background:var(--azul-claro);
   color:var(--azul);
-  font-weight:900;
+  font-weight:950;
   font-size:22px;
   border:1px solid rgba(30,136,229,.35);
 }
-.title{color:var(--azul); font-weight:900; font-size:18px; line-height:1.1;}
+.logoNDY{
+  font-weight:950;
+  color:var(--azul);
+  letter-spacing:1px;
+}
+.title{color:var(--azul); font-weight:950; font-size:18px; line-height:1.1;}
 .subtitle{color:var(--muted); font-size:12px; margin-top:2px;}
 
 .topActions{display:flex; gap:8px; flex-wrap:wrap;}
@@ -59,17 +70,8 @@ body{
   padding:14px;
 }
 
-h2{
-  margin:0 0 10px;
-  color:var(--azul);
-  font-size:16px;
-}
-
-.subh{
-  margin:0 0 10px;
-  color:var(--azul);
-  font-size:14px;
-}
+h2{margin:0 0 10px;color:var(--azul);font-size:16px;}
+.subh{margin:0 0 10px;color:var(--azul);font-size:14px;}
 
 label{
   display:block;
@@ -100,7 +102,6 @@ textarea{min-height:78px; resize:vertical;}
   gap:10px;
   flex-wrap:wrap;
 }
-
 .rowActions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
 
 .divider{height:1px; background:rgba(207,216,220,.85); margin:14px 0;}
@@ -109,7 +110,7 @@ textarea{min-height:78px; resize:vertical;}
   border:none;
   padding:10px 12px;
   border-radius:12px;
-  font-weight:900;
+  font-weight:950;
   cursor:pointer;
   background:var(--azul);
   color:#fff;
@@ -128,7 +129,7 @@ textarea{min-height:78px; resize:vertical;}
   background:rgba(30,136,229,.12);
   color:var(--azul);
   font-size:12px;
-  font-weight:900;
+  font-weight:950;
 }
 
 .hint{
@@ -153,11 +154,7 @@ textarea{min-height:78px; resize:vertical;}
   color:#fff;
   border-color:var(--azul);
 }
-.list .sub{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:2px;
-}
+.list .sub{font-size:12px; color:var(--muted); margin-top:2px;}
 .list button.active .sub{color:#E3F2FD;}
 
 .quickWrap{
@@ -184,16 +181,10 @@ th{
   z-index:1;
   background:var(--azul-claro);
   color:var(--azul);
-  font-weight:900;
+  font-weight:950;
 }
 td:first-child{text-align:left; min-width:240px;}
-
-.cellTap{
-  cursor:pointer;
-  user-select:none;
-  font-weight:900;
-  border-radius:10px;
-}
+.cellTap{cursor:pointer; user-select:none; font-weight:950; border-radius:10px;}
 .v{color:#90A4AE;}
 .n0{background:#ffebee; color:#c62828;}
 .n3{background:#fff8e1; color:#ef6c00;}
@@ -229,7 +220,7 @@ td:first-child{text-align:left; min-width:240px;}
   padding:10px 12px;
   min-width:170px;
 }
-.scoreBox .lab{font-size:12px; color:var(--muted); font-weight:900;}
+.scoreBox .lab{font-size:12px; color:var(--muted); font-weight:950;}
 .scoreBox .val{font-size:18px; font-weight:950; margin-top:4px;}
 
 .repList{display:flex; flex-direction:column; gap:8px; margin-top:8px;}
@@ -243,12 +234,7 @@ td:first-child{text-align:left; min-width:240px;}
   align-items:center;
 }
 .repItem .meta{font-size:12px; color:var(--muted); margin-top:3px;}
-.tag{
-  font-weight:900;
-  font-size:12px;
-  padding:6px 10px;
-  border-radius:999px;
-}
+.tag{font-weight:950;font-size:12px;padding:6px 10px;border-radius:999px;}
 .tag.pendente{background:#fff8e1; color:#ef6c00;}
 .tag.feita{background:#e8f5e9; color:#2e7d32;}
 
